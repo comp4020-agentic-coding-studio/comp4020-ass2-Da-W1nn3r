@@ -23,6 +23,42 @@ after.
 
 ---
 
+## Burner chains
+
+Before you have any electricity, everything runs on coal directly. A
+**burner chain** is a drill, a furnace, and the burner inserters between
+them, each one fed its own fuel — no power grid involved yet.
+
+- burner mining drill → burner inserter → furnace → burner inserter → chest
+- every burner inserter needs its own coal, on top of whatever the drill
+  and furnace are burning
+- slow and fuel-hungry, but it's running the moment you place it — no
+  research, no power poles
+
+![Placeholder — a screenshot of a burner mining drill feeding a stone furnace through a burner inserter, with a second burner inserter unloading plates into a chest, will go here](./assets/burner-chain.png)
+
+This is what you're standing on top of for the first few minutes. It's not
+meant to last — it's meant to get smelting started before power exists.
+
+---
+
+## Direct burner-to-furnace
+
+A burner mining drill's output faces one direction. Place a furnace right
+in front of it and the drill deposits ore straight into the furnace — no
+belt, no inserter, no wasted tile.
+
+- saves an inserter and the coal it would burn
+- only works for the one furnace directly in front of the drill's output
+- still fine to hand-feed both the drill and the furnace their own coal
+
+![Placeholder — a screenshot of a burner mining drill placed directly facing into a stone furnace with no inserter between them will go here](./assets/direct-burner-furnace.png)
+
+Combine this with the furnace-row idea below once you outgrow one drill,
+one furnace.
+
+---
+
 ## The ore-to-furnace ratio
 
 One mining drill feeds a fixed number of furnaces before the belt runs
@@ -31,6 +67,24 @@ row is in inserter reach of the same ore and coal belts.
 
 Stone furnace now. Steel furnace once you have the steel to spare — faster
 smelt time, same footprint.
+
+---
+
+## Boiler and steam power
+
+Actual electricity starts with three parts in a line: an offshore pump, a
+boiler, and a steam engine.
+
+- offshore pump draws water, piped into the boiler
+- boiler burns coal to turn that water into steam
+- steam engine converts steam into power for the grid
+- one boiler comfortably keeps two steam engines fed — build in that pair,
+  not one-for-one
+
+![Placeholder — a screenshot of an offshore pump piped into a row of boilers, each boiler piped into a pair of steam engines, all connected to power poles, will go here](./assets/boiler-steam.png)
+
+Get this running before your first burner chain runs out of patience — it's
+what everything from Week 2 onward is built on top of.
 
 ---
 
