@@ -7,6 +7,7 @@ week: 9
 date: 2026-09-28
 teachers:
   - naledi-osei
+slides: /decks/week-09/
 related:
   - sessions/09-tileable-blueprint
 ---
