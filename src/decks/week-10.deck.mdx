@@ -1,0 +1,121 @@
+---
+title: Advanced Optimisation
+description: Week 10's lecture deck — circuit-network logic gates, nuclear layout and its failure mode, and dispatching trains only when the network calls for them.
+---
+
+{/* _class: impact */}
+
+# Factorio: Engineering Addiction
+
+Week 10 — Advanced Optimisation
+
+---
+
+## Logic gates
+
+Decider and arithmetic combinators are the circuit network's equivalent of
+an if-statement and a calculation — everything this week's automation
+does is built from just these two.
+
+- a **decider combinator** compares an input signal against a condition
+  (greater than, equal to, and so on) and outputs a signal only while the
+  condition holds — the network's if-statement
+- an **arithmetic combinator** takes one or two input signals and outputs
+  the result of an operation on them (add, multiply, and so on) — the
+  network's calculation
+- chaining a handful of these is enough to express "only run this while
+  that other thing is true," which is the pattern behind every example in
+  this lecture
+
+---
+
+## Nuclear setups
+
+A reactor's output scales with how many other reactors touch it, which
+makes nuclear power a layout problem before it's a fuel problem — and the
+same setup has one specific, well-known way to starve itself of fuel.
+
+- every reactor gains +100% heat output for each **orthogonally** adjacent
+  reactor — diagonal neighbours don't count, and the bonus affects heat
+  output only, never fuel consumption
+- a 2×2 block of reactors means each one touches two neighbours (+200%
+  each), so four reactors produce far more than four times a single
+  reactor's output — but only if they sit in a tight, fully-aligned grid
+- fuel cells are made from 1 uranium-235 and 19 uranium-238 (plus iron
+  plate) — since raw uranium processing yields U-235 only 0.7% of the
+  time, an uncontrolled fuel-cell line can drain a U-235 stockpile far
+  faster than raw processing replaces it, starving whatever else needs
+  U-235, including the enrichment process itself
+
+---
+
+## Nuclear setups, in practice
+
+![A Factorio nuclear reactor wired via green circuit wire to a decider combinator, which in turn controls an inserter feeding fuel cells from a chest](./assets/nuclear-reactor-circuit.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+The decider combinator here is the gate: it's what stops the inserter from
+loading another fuel cell before the reactor actually needs one.
+
+---
+
+## Logic-based rails
+
+A train stop isn't limited to a fixed schedule — its dispatch behaviour
+can be driven directly by circuit signals, so a train only comes when the
+network's actual state calls for it.
+
+- **enable/disable**: a circuit condition can switch a stop on or off; a
+  disabled stop is skipped in favour of another stop sharing its name, or
+  the train waits if none are available
+- **train limit**: a circuit signal can set how many trains may currently
+  be heading to a stop — a limit of 0 behaves identically to disabling the
+  stop outright
+- **priority**: when several stops share a name, a circuit signal can also
+  set which one trains prefer, on top of enabling or limiting them
+
+---
+
+## On-demand trains
+
+Combining a stock-level signal with a train stop's circuit conditions
+turns "run a train every N minutes" into "run a train when the station
+actually needs one" — the difference between guessing and reacting.
+
+- reading a chest or tank's contents as a signal, then wiring that signal
+  into the pickup station's enable condition, means a train is only
+  dispatched once there's enough to justify the trip
+- the same pattern at the delivery end — disabling the destination once
+  its buffer is full — prevents a train arriving somewhere that has
+  nowhere to put the cargo
+- this is the same if-statement pattern from the start of this lecture,
+  applied to a schedule instead of a single machine
+
+---
+
+{/* _class: quote */}
+
+> A fixed timer runs whether or not the network needs it. A circuit condition runs because the network needs it — that difference is the entire point of this week.
+
+Every example tonight — reactor fuelling, train dispatch — is the same
+gate, wired to a different question.
+
+---
+
+## This week's practical
+
+```txt
+Goal: a circuit-controlled uranium processing setup that runs
+      continuously without jamming or starving
+Test: vary the ore supply rate and confirm the setup holds without manual
+      intervention
+Pass: the setup runs unattended through a supply-rate change without
+      jamming; at least one circuit condition (not a fixed timer) governs
+      part of the process; the failure mode the circuit logic is guarding
+      against is stated
+```
+
+State the failure mode before you wire the fix — a circuit condition
+that's just there because it seemed like a good idea isn't the same as
+one guarding against a stated, specific way the setup jams.

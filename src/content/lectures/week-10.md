@@ -7,6 +7,7 @@ week: 10
 date: 2026-10-05
 teachers:
   - naledi-osei
+slides: /decks/week-10/
 related:
   - sessions/10-jam-free-uranium
 ---
