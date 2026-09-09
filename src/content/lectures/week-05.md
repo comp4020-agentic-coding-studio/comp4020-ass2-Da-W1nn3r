@@ -7,6 +7,7 @@ week: 5
 date: 2026-08-24
 teachers:
   - naledi-osei
+slides: /decks/week-05/
 related:
   - sessions/05-clear-a-biter-nest
 ---

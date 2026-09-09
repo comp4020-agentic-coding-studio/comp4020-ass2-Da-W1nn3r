@@ -1,0 +1,148 @@
+---
+title: Transport and Defence
+description: Week 5's lecture deck — vehicles and terrain tools, then biters, worms and nests, and the firepower that manages them.
+---
+
+{/* _class: impact */}
+
+# Factorio: Engineering Addiction
+
+Week 5 — Transport and Defence
+
+---
+
+## Transport options
+
+Walking is the baseline every other option is measured against — each
+vehicle buys speed, cargo space, or both, at a different cost.
+
+- the **car** trades a fuel slot for speed well above walking pace, with a
+  small cargo hold — cheap, early, and still favoured by some players
+  purely for outrunning trouble rather than fighting it
+- the **tank** is slower and less maneuverable than a player on foot, but
+  carries a submachine gun, a short-range flamethrower and a cannon —
+  durability and firepower over mobility
+- the **train** (next week's topic) trades route flexibility for speed and
+  cargo capacity over long, fixed distances
+- the **spidertron** takes no fuel at all — its speed comes only from
+  exoskeleton equipment fitted into its own equipment grid, and it can
+  cross terrain a wheeled vehicle can't
+
+---
+
+## Obstacle removal
+
+Cliffs and water aren't obstacles to route around forever — cliff
+explosives and landfill remove them permanently, at a deliberate resource
+cost.
+
+- cliff explosives clear a cliff face outright, opening a route or building
+  site that was previously blocked
+- landfill converts water tiles to buildable land, at the cost of the
+  landfill material itself
+- both are one-way: once placed, the terrain change is permanent, which
+  makes it a genuine design decision, not a temporary fix
+
+---
+
+## Biters, worms and nests
+
+Enemy presence grows along an **evolution factor** from 0 to 1, driven by
+three independent things: time passing, cumulative pollution produced, and
+nests destroyed. All of it is driven by total pollution *produced*, not by
+how much of the cloud you've managed to contain.
+
+- destroying a nest bumps evolution a fixed amount regardless of nest type
+  — clearing nests is a safety decision, not a way to make the remaining
+  biters weaker
+- pollution has a second, separate job: pollution reaching a nest is what
+  triggers actual attacks, on its own schedule — containing the cloud
+  reduces attack frequency even though it does nothing for evolution
+  already accrued
+- nests also expand on their own timer, claiming unclaimed territory
+  outward, stopping only when they reach an occupied area (another nest,
+  or a player structure) — left alone, expansion eventually fills every
+  explored area
+
+---
+
+## Biters, worms and nests, in practice
+
+![A wiki graph titled "Evolution factor (Pollution only)" plotting evolution factor from 0 to 1 against millions of pollution units produced, rising steeply at first and flattening toward 0.9 as pollution accumulates](./assets/evolution-pollution.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+The curve flattens, it never resets — pollution already produced doesn't
+un-produce itself, which is why the practical lever is producing less of
+it going forward, not cleaning up what's already out there.
+
+---
+
+## Turret creep, firepower and kiting
+
+Turret creep advances a defensive line by building the next turret just
+inside the range of the one behind it, letting the position push forward
+without ever leaving a gap undefended.
+
+- walls only block melee contact — they don't stop projectile or spit
+  damage, and big and behemoth biters can reach two tiles, hitting whatever
+  is directly behind a single wall layer
+- a wall's real job is buying a turret time: it keeps melee attackers at
+  arm's length so the turret keeps firing instead of getting hit, not
+  making the turret invulnerable
+- kiting uses a vehicle's speed advantage (the car, mainly) to stay outside
+  an enemy's attack range while still doing damage — useful against
+  spitters and worms specifically, since their damage is ranged and
+  otherwise ignores your own speed entirely
+
+---
+
+## Turret creep, in practice
+
+![A wiki screenshot of a dense mass of biters attacking a defensive line, with turret muzzle flashes visible along a factory's edge](./assets/turret-wall.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+The line holds or doesn't based on whether the turrets out-range and
+out-sustain what's arriving, not on how the wall looks.
+
+---
+
+## Other tools
+
+Not every threat is a straight firepower fight — poison capsules and
+combat robots solve problems that turrets and guns don't.
+
+- poison capsules deal heavy damage to worms specifically (little to
+  nests), with far more range than a grenade — the direct answer to a worm
+  a player can't safely walk up to
+- combat robots (defender, distractor and destroyer, in rising cost order)
+  follow the player or hold position and fight automatically, useful for
+  soaking or distributing damage during an attack run on a nest rather than
+  tanking every hit personally
+- neither replaces firepower — both exist to change *where* the damage
+  lands, buying survivability during an approach a straight gunfight
+  wouldn't allow
+
+---
+
+{/* _class: quote */}
+
+> Walling off a threat isn't clearing it. It's scheduling it for later, with interest.
+
+Evolution keeps accruing on its own timer whether or not you're looking at
+it — postponing a nest doesn't shrink the bill.
+
+---
+
+## This week's practical
+
+```txt
+Goal: destroy a biter nest with this week's tools, opening up access
+Test: use at least one non-turret tool (vehicle, capsule, or terrain change)
+Pass: the targeted nest is destroyed, not just suppressed; pollution and
+      evolution state at the time of the attack is noted
+```
+
+Suppressing a nest behind a wall isn't the goal here — the nest has to
+actually come down, and by a route that uses more than gun turrets alone.
