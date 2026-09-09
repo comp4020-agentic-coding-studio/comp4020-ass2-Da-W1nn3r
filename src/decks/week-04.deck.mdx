@@ -1,0 +1,175 @@
+---
+title: Ratios and Bottlenecks
+description: Week 4's lecture deck — I/O ratios, fluid systems, modules and beacons, and how ratio mismatches compound down a chain.
+---
+
+{/* _class: impact */}
+
+# Factorio: Engineering Addiction
+
+Week 4 — Ratios and Bottlenecks
+
+---
+
+## Input/output ratios
+
+Every recipe is a rate problem in disguise: a crafting time plus an
+ingredient list is enough to work out exactly how many machines of each
+kind a line needs, with no trial and error involved.
+
+- a machine's output rate is `1 / crafting time` items per second, scaled by
+  its crafting speed — a stone furnace smelting iron plate (3.2s at speed
+  1) makes 0.3125 plates/second, an electric furnace (speed 2) makes 0.625
+- to match a downstream consumer's demand, divide its consumption rate by
+  the upstream machine's output rate — the result is how many upstream
+  machines to build, not a number to round down casually
+- getting this from the recipe, not from "add furnaces until it looks
+  enough," is what makes a line's ratio something you can state and defend,
+  not just something that happened to work
+
+---
+
+## Fluid systems
+
+Fluids are not items on a belt. A pipe (or a connected run of pipes and
+tanks) holds fluid as one continuous, shared quantity — not discrete units
+occupying slots.
+
+- a connected run of pipes not broken by a pump is a single "segment": the
+  fluid level equalises across the whole segment as pressure, not as
+  individual units queuing
+- each connection point (a machine or pump) is capped at a maximum transfer
+  rate, and how fast fluid actually moves also depends on how full the
+  segment already is — nearly empty fills fast but drains slowly, nearly
+  full is the reverse
+- long pipe runs need pumps not just for speed but to split one long
+  segment into several — an unpumped run has a hard distance limit before
+  it stops equalising at all
+
+---
+
+## Fluid systems, in practice
+
+![A wiki screenshot of several parallel pipes, each carrying a different coloured fluid — water, crude oil, heavy oil, light oil, petroleum gas and sulfuric acid — shown as continuous liquid rather than discrete items](./assets/fluid-pipes.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+Each pipe here is one fluid at one shared level — there's no belt-style gap
+between one unit and the next.
+
+---
+
+## Crude oil to petroleum gas
+
+Basic oil processing turns crude oil into petroleum gas, light oil and
+heavy oil in fixed proportions from a single refinery — useful early, but
+it leaves you with heavy and light oil you may not need yet.
+
+- advanced oil processing (needs water as a second input) shifts the output
+  mix and adds cracking: a chemical plant can crack heavy oil into light
+  oil, and light oil into petroleum gas, when there's a surplus of the
+  heavier fluid and a shortage of the lighter one
+- the oft-quoted ratio for pure petroleum gas production is 20 refineries :
+  5 heavy-oil-cracking plants : 17 light-oil-cracking plants (8:2:7 close
+  enough) — but that ratio assumes none of the heavy or light oil is wanted
+  for anything else
+- the moment lubricant (from heavy oil) or rocket fuel and solid fuel (from
+  light oil) enter the picture, a fixed cracking ratio over-cracks — most
+  factories gate cracking with circuit conditions instead, cracking only
+  when a fluid is actually in surplus
+
+---
+
+## Modules and beacons
+
+Modules are a ratio decision before they're a power-cost one — each type
+trades a different set of stats, and the trade only pays off if the recipe
+and the machine's role can absorb it.
+
+- **speed modules**: +20% / +30% / +50% crafting speed by tier, at a cost of
+  +50% / +60% / +70% energy consumption — pure throughput, no output bonus
+- **productivity modules**: +4% / +6% / +10% extra output for free by tier,
+  at a cost of +40–80% energy *and* −5% to −15% crafting speed — only legal
+  on recipes that produce intermediate products, not on every recipe
+- **efficiency modules**: −30% / −40% / −50% energy consumption, tier for
+  tier, with no speed or output change at all
+- module effects from multiple modules in the same machine add up linearly;
+  a beacon extends a module's effect to nearby machines without taking up
+  their module slots, at a reduced strength that depends on how many other
+  beacons already reach that machine — productivity modules can't be
+  placed in beacons at all
+
+---
+
+## Modules and beacons, in practice
+
+![A wiki diagram of three assembling machines each surrounded by different overlapping counts of beacons, with the game's own tooltip reporting the transmitted effect strength dropping as the beacon count per machine rises](./assets/beacon-alignment.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+Read the tooltip, not just the picture — six beacons reaching one machine
+transmit at a fraction of what one beacon alone would, which is why beacon
+layouts are designed around sharing coverage between machines, not stacking
+it onto one.
+
+---
+
+## On-site versus belted-in intermediates
+
+An intermediate product — a gear, a circuit, a cable — can be made right
+next to where it's consumed, or carried in on a belt from a central
+production line. Neither is free.
+
+- making it on-site avoids competing for space on a shared bus belt, but
+  duplicates that production step everywhere it's needed, and duplicates
+  the mistake if the local ratio is ever wrong
+- belting it in from one central line means the ratio only has to be worked
+  out once, but adds that intermediate to the bus's belt-count budget, and
+  a bus has a limited number of belt lanes to spend
+- this is the same trade-off Week 2 raised between spaghetti and the bus,
+  now applied at the scale of a single intermediate rather than a whole
+  base
+
+---
+
+## Chaining assembling machines
+
+A ratio that balances two machines doesn't automatically balance a longer
+chain — each extra step multiplies in its own crafting time and ingredient
+count, and small roundings compound.
+
+- electronic circuits need copper cable, and copper cable is itself a
+  crafted intermediate (1 copper plate → 2 copper cable, 0.5s) — get the
+  copper cable assemblers under-provisioned by even one machine and the
+  circuit line downstream never sees it, no matter how many circuit
+  assemblers are built
+- work a chain from its *last* step backwards: fix the desired output rate,
+  divide back through each step's ratio in turn, and round every machine
+  count up, not down — rounding down at any step reintroduces the shortfall
+  the whole calculation was meant to prevent
+- a five-step chain with a rounding shortfall at step two doesn't look like
+  a step-two problem downstream — it looks like every later machine is
+  randomly starved, because in effect they are
+
+---
+
+{/* _class: quote */}
+
+> A ratio you can state and defend beats a ratio that happens to work today.
+
+The whole point of doing the arithmetic is that "it looked fine yesterday"
+isn't a ratio.
+
+---
+
+## This week's practical
+
+```txt
+Goal: fully automate red or green science packs, raw ore to lab feed
+Test: run the line unattended for a sustained period
+Pass: no assembler sits starved or backed up, and the ratios used are
+      stated, not arrived at by trial and error
+```
+
+State the ratio for every step before you build it — the build is there to
+confirm the arithmetic, not to substitute for it.

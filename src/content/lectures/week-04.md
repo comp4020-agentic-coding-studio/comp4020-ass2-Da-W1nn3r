@@ -7,6 +7,7 @@ week: 4
 date: 2026-08-17
 teachers:
   - naledi-osei
+slides: /decks/week-04/
 related:
   - sessions/04-automate-science-packs
 ---
