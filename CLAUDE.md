@@ -1,11 +1,60 @@
-# Your harness
+# Working rules for this repo
 
-This file is yours, and it arrives with no rules in it on purpose --- this note
-is all there is, and it goes when you write your own. The rules you hold the
-agent to are part of what gets marked, so they should be rules you decided on.
+The platform is fixed (see `README.md`): the Slop identity, the four content
+collections and their keys, `astro.config.ts`, and the generated API stay as
+they arrived. Everything else — course identity, all `src/content/` entries,
+`src/pages/`, `src/decks/`, the spec suite, and this file — is the deliverable.
 
-Nothing about the starter is recorded here. The platform under you is fixed and
-documented in `README.md`, and the
-[course website](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/)
-publishes this deliverable's brief and spec. Read both before you plan or build;
-what the agent needs to carry from either is your call.
+## Fixed contract — do not drift from these without updating `spec/`
+
+- Course code keeps the pre-assigned digits `130` (`SLOP4130`).
+- Assessment `weight` values sum to exactly 100.
+- All 12 teaching weeks stay populated with exactly one `sessions` node and
+  one `lectures` node each, every date inside `startDate`/`endDate`.
+- At least one lecture keeps a real slide deck under `src/decks/` linked via
+  its `slides` field.
+- Every `sessions` node keeps non-empty `practical` and `goal` frontmatter.
+
+`spec/course-content.test.ts` enforces the first four of these against
+`dist/api/index.json`; `spec/data-integrity.test.ts` enforces the date range.
+If a change would break one of these promises on purpose, update the spec in
+the same change, not after.
+
+## Images: placeholder-first
+
+`hero-home.avif` and `card.png` are deliberately simple placeholder boxes
+(flat background, dashed border, descriptive label) with alt text describing
+what real image belongs there. This is intentional, not a stand-in for
+unfinished work — real in-game screenshots get sourced and dropped in later.
+Don't generate original "themed" artwork to fill the gap; keep the placeholder
+obvious so it's clear a real screenshot is still owed.
+
+## Verification
+
+- Run `pnpm check` after any content change (typecheck, build, spec suite).
+- Run `pnpm check:evidence` before treating any milestone as final.
+- **Known local limitation on Windows**: `astro-theme-university`'s
+  `astro:build:done` hook invokes `npx` via `child_process.execFile` without
+  `shell: true`. On Windows this fails with `spawn npx ENOENT` even though
+  `npx.cmd` resolves fine from a shell — Node doesn't apply `PATHEXT`
+  resolution to `execFile`/`spawn` targets. This hook runs before the
+  `course-graph` integration's own `astro:build:done` hook, so a crash here
+  also blocks `dist/api/index.json` from being generated locally, and blocks
+  the axe accessibility and link checks from running.
+  `.github/workflows/checks.yml` runs `pnpm check` on `ubuntu-latest`, which
+  doesn't have this extension-resolution issue — treat that CI run as the
+  authoritative `pnpm check` result, not a local Windows build. (If you need
+  to verify locally on Windows anyway, temporarily passing `search: false` to
+  `universityTheme()` unblocks the hook enough to run axe/link checks and
+  generate the API — revert it before committing; `astro.config.ts` doesn't
+  ship with that flag.)
+
+## Tone
+
+Dry and technical throughout — course copy, policies, commit messages,
+`PROCESS.md`. Not jokey or meme-y, even though the subject is a video game.
+
+## `PROCESS.md`
+
+Cite only real commit hashes/ranges, taken from `git log` at the time of
+writing — never invented or approximate ones.
