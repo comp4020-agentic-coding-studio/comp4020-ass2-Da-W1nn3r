@@ -7,6 +7,7 @@ week: 12
 date: 2026-10-19
 teachers:
   - naledi-osei
+slides: /decks/week-12/
 related:
   - sessions/12-tps-audit
   - assessments/final-exam

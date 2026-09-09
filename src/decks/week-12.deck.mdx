@@ -1,0 +1,129 @@
+---
+title: The Factory Must Grow
+description: Week 12's lecture deck — entity count versus entity type as TPS costs, pollution's own simulation cost, footprint revisited, and a checklist for diagnosing a slow base.
+---
+
+{/* _class: impact */}
+
+# Factorio: Engineering Addiction
+
+Week 12 — The Factory Must Grow
+
+---
+
+## TPS advanced
+
+Week 11 established that UPS is a finite, shared budget. This week's
+question is which entities spend that budget fastest — because count
+alone doesn't answer it.
+
+- for assembling-machine-type buildings, the number of machines is what
+  costs UPS, not their speed — modules and beacons that let fewer,
+  faster machines match the same output are a genuine UPS saving, not
+  just a space saving
+- inserters are a specific, callable-out cost of their own — cutting the
+  number of inserters, or clocking them so they don't check every tick,
+  reduces this line directly
+- biters and spitters sit in their own "Unit" entity class, separate from
+  buildings — removing them removes that cost outright, which is why a
+  base that's cleared its perimeter runs measurably lighter than one
+  still fighting off attacks
+
+---
+
+## Pollution TPS
+
+Pollution isn't free to simulate either — it's a cloud tracked per map
+chunk, updated on its own schedule, and it's also what decides how often
+biters show up to cost UPS in the first place.
+
+- each 32×32-tile chunk's pollution is updated every 64 ticks: once a
+  chunk holds enough pollution it spreads outward to its neighbours at a
+  fixed rate, and unpolluted chunks slowly absorb what reaches them
+- pollution doesn't just sit there — enemy spawners absorb it to fuel
+  attacks, so a heavier pollution cloud produces attacks more often and
+  with bigger groups, which is pollution converting directly into the
+  biter-related UPS cost from the previous slide
+- reducing pollution output (fewer, more efficient machines; modules that
+  cut pollution as well as power draw) is a TPS lever precisely because
+  it starves the mechanism that spawns the entities costing UPS elsewhere
+
+---
+
+## Pollution TPS, in practice
+
+![A Factorio map view showing a red pollution cloud spreading outward from a base in a blocky, chunk-aligned pattern](./assets/pollution-cloud-map.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+Those hard edges are the chunk boundaries the simulation actually updates
+along — the cloud isn't smooth because the underlying calculation isn't
+either.
+
+---
+
+## Reducing base footprint
+
+Week 2 framed footprint as a build-time and travel-time question. Run the
+same trade-off through a TPS lens and the answer doesn't automatically
+match — a smaller footprint isn't always a lighter one.
+
+- footprint and entity count are related but not the same thing: a
+  compact base built from many small machines can hold more UPS-costing
+  entities than a sprawling base built from fewer, larger ones
+- beacons and modules that shrink a production line's footprint do so by
+  reducing machine count for the same output — which is also exactly the
+  move that reduces UPS cost, so this particular trade-off happens to
+  point the same direction on both axes
+- a smaller pollution footprint (fewer machines, or the same machines
+  running more efficiently) also means a smaller pollution cloud, which
+  feeds back into fewer biter attacks — footprint, pollution and UPS
+  aren't three separate concerns here, they're one concern viewed three
+  ways
+
+---
+
+## What causes lower TPS
+
+Diagnosing a slow base means picking the right cause off this week's
+checklist, not just naming "too much stuff" — the four candidates behave
+differently and call for different fixes.
+
+- **entity count**: raw numbers — more machines, more inserters, more
+  belts each add their own small cost; the fix is usually consolidation
+- **entity type**: the same count of a cheaper entity type costs less
+  than an expensive one — fewer, faster assemblers beat many slow ones
+  at identical output
+- **pollution and biter activity**: a cost that scales with how much is
+  being produced and how far it's spreading, not with the base's size
+  directly — the fix is pollution reduction or a cleared perimeter, not
+  fewer machines
+- telling these apart matters because the fix for one can do nothing for
+  another: clearing biters doesn't help an entity-count problem, and
+  consolidating machines doesn't help a pollution problem
+
+---
+
+{/* _class: quote */}
+
+> A slow base isn't one problem wearing different masks. Entity count, entity type, and pollution are three different bills, and paying down the wrong one leaves the slowdown exactly where it was.
+
+---
+
+## This week's practical
+
+```txt
+Goal: given a supplied base, explain how it has been TPS-optimised and
+      identify what, if anything, is still costing it performance
+Test: audit the base against this week's checklist — entity count,
+      entity type, pollution and biter activity
+Pass: existing TPS optimisations are correctly identified; any remaining
+      performance cost is correctly attributed to entity count, entity
+      type, or pollution/biter activity; a TPS problem is distinguished
+      from a production-ratio problem
+```
+
+This closes the semester's practical work — a production-ratio problem
+that looks like lag, and a TPS problem that looks like a bottleneck, are
+the two mistakes this course has spent twelve weeks teaching you to tell
+apart.
