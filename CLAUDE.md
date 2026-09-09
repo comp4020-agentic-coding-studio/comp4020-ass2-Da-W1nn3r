@@ -29,6 +29,12 @@ unfinished work — real in-game screenshots get sourced and dropped in later.
 Don't generate original "themed" artwork to fill the gap; keep the placeholder
 obvious so it's clear a real screenshot is still owed.
 
+Slide-deck images under `src/decks/assets/` are the exception: they're real
+screenshots pulled from the [Factorio Wiki](https://wiki.factorio.com/),
+licensed CC BY-NC-SA 3.0, used here for a non-commercial educational site.
+Give each one real, descriptive alt text (not "placeholder — ... will go
+here") and a visible source caption under the image in the deck markdown.
+
 ## Verification
 
 - Run `pnpm check` after any content change (typecheck, build, spec suite).
