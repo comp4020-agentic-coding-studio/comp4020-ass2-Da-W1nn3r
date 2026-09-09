@@ -7,6 +7,7 @@ week: 11
 date: 2026-10-12
 teachers:
   - naledi-osei
+slides: /decks/week-11/
 related:
   - sessions/11-compare-two-designs
 ---
