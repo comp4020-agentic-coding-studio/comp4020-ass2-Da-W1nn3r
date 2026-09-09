@@ -1,48 +1,77 @@
 ---
-title: Opening lecture
-description: The placeholder deck — replace it with a real deck for your course
----
-
-# Opening lecture
-
-{/* STARTER_CONTENT: replace this deck, then remove this comment. */}
-
-Replace this deck. It is here to show that slides are part of the site, built
-from the same markdown as everything else.
-
----
-
-## Slides are markdown
-
-A `---` starts a new slide. Everything else is ordinary markdown: headings,
-lists, links, tables, images, fenced code.
-
-- one idea per slide
-- the fewest words that carry it
-- the deck is a performance artefact, so it can say things a page wouldn't
-
+title: Early-Game Foundations
+description: Week 1's lecture deck — resourcing, smelting, power and research priority before any automation exists.
 ---
 
 {/* _class: impact */}
 
-# A slide class
+# Factorio: Engineering Addiction
 
-`{/* _class: impact */}` fills the slide with the brand colour. `quote`,
-`banner` and `centered` are the others the theme styles.
+Week 1 — Early-Game Foundations
 
 ---
 
-## What else is here
+## Before you touch a belt
 
-```sh
-pnpm dev
-pnpm check
+Read the map first. A few seconds mining a "big rock" outproduces minutes of
+drill time. Lay out a coal chain before your first boiler runs dry, not
+after.
+
+- prioritise big rocks over patch mining
+- coal chains feed boilers, boilers feed engines
+- nothing here needs automation yet
+
+---
+
+## The ore-to-furnace ratio
+
+One mining drill feeds a fixed number of furnaces before the belt runs
+empty. Furnace *rows* beat scattered furnaces, because every furnace in a
+row is in inserter reach of the same ore and coal belts.
+
+Stone furnace now. Steel furnace once you have the steel to spare — faster
+smelt time, same footprint.
+
+---
+
+{/* _class: quote */}
+
+> Automation before almost everything else.
+
+Research priority in one sentence. A couple of early logistics or
+efficiency techs are worth taking first — nothing else is.
+
+---
+
+## Hand-fed, on purpose
+
+Your inventory is a temporary buffer between "gathered" and "used," not a
+production line.
+
+- craft ammo and a handful of assemblers by hand while the base is small
+- everything else waits for a proper line
+- knowing which is which is the actual skill this week teaches
+
+---
+
+{/* _class: banner */}
+
+## Design for the base you don't have yet
+
+Leave empty space. Leave belt-lane capacity you don't need today.
+
+This is the one habit that separates a base that scales from one that
+doesn't — and it's where Week 2 picks up.
+
+---
+
+## This week's practical
+
+```txt
+Goal: research Automation
+Using: hand mining, manual smelting, starter power
+Not using: belts or assemblers beyond what Automation unlocks
 ```
 
-The second command proves the deck compiles with the rest of the site. Use the
-first to inspect every slide at the desktop and phone marking viewports; slide
-fit and legibility are visual judgements.
-
-The [astromotion](https://github.com/ANUcybernetics/astromotion) README has the
-rest of the syntax: speaker notes, backgrounds, QR codes, fragments, and
-components hydrated per slide.
+Bring the save you finish this tutorial with to Week 2 — base design starts
+from wherever you leave it.
