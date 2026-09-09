@@ -13,44 +13,54 @@ Week 1 — Early-Game Foundations
 
 ## Before you touch a belt
 
-Read the map first. A few seconds mining a "big rock" outproduces minutes of
-drill time. Lay out a coal chain before your first boiler runs dry, not
-after.
+Read the map first. Rock formations ("big rocks") aren't ore — hand-mining
+one gives free stone, and sometimes coal, in a couple of swings. That's
+faster than waiting on a drill for the stone your first furnaces need, and
+it can hand you enough coal to bootstrap the loop on the next slide.
 
-- prioritise big rocks over patch mining
-- coal chains feed boilers, boilers feed engines
+- big rocks: free stone, occasional coal, no drill required
+- ore patches (iron, copper, coal) are what you put drills on
 - nothing here needs automation yet
 
 ---
 
 ## Burner chains
 
-Before you have any electricity, everything runs on coal directly. A
-**burner chain** is a drill, a furnace, and the burner inserters between
-them, each one fed its own fuel — no power grid involved yet.
+A mining drill doesn't just drop its output on the ground — it deposits
+directly into whatever's immediately in front of it: a chest, a furnace, or
+another burner-fuelled entity. That includes a second burner mining drill.
 
-- burner mining drill → burner inserter → furnace → burner inserter → chest
-- every burner inserter needs its own coal, on top of whatever the drill
-  and furnace are burning
-- slow and fuel-hungry, but it's running the moment you place it — no
-  research, no power poles
+Put two burner mining drills on a coal patch facing each other, one tile
+apart, and each one's output lands straight in the other's fuel tank. Prime
+both with a handful of coal by hand and the loop is self-sustaining — no
+inserter, no belt, no power pole.
 
-![Placeholder — a screenshot of a burner mining drill feeding a stone furnace through a burner inserter, with a second burner inserter unloading plates into a chest, will go here](./assets/burner-chain.png)
+- each drill mines coal faster than it burns it, so the fuel stacks climb
+  well past what either drill needs to keep running
+- that surplus is your actual coal stockpile: ctrl-click either drill to
+  scoop it up whenever you need to refuel something else by hand
+- **don't** bolt a burner inserter onto a drill to "skim" the excess — it
+  pulls from the same fuel stack the drill is running on, and it can empty
+  that stack faster than mining refills it, stalling the whole loop
 
-This is what you're standing on top of for the first few minutes. It's not
-meant to last — it's meant to get smelting started before power exists.
+![Placeholder — a screenshot of two burner mining drills on a coal patch, facing each other one tile apart, each depositing mined coal straight into the other's fuel inventory, will go here](./assets/burner-chain.png)
+
+This is the same drop-into-whatever's-in-front mechanic the next slide uses
+for ore — coal just happens to also be valid fuel for what it's dropped into.
 
 ---
 
 ## Direct burner-to-furnace
 
-A burner mining drill's output faces one direction. Place a furnace right
-in front of it and the drill deposits ore straight into the furnace — no
-belt, no inserter, no wasted tile.
+Same mechanic, aimed at a furnace instead of another drill: place a stone
+furnace directly in front of a burner mining drill's output and the drill
+deposits ore straight into it. No belt, no inserter, no wasted tile.
 
-- saves an inserter and the coal it would burn
-- only works for the one furnace directly in front of the drill's output
-- still fine to hand-feed both the drill and the furnace their own coal
+- only the one furnace directly in front of the drill's output gets fed
+  this way — everything else still needs a belt or inserter
+- the drill and the furnace each still burn their own coal — hand-feed both
+- pairs naturally with a burner-chain coal loop nearby: mine the coal by
+  hand from the loop, carry it to the drill and furnace
 
 ![Placeholder — a screenshot of a burner mining drill placed directly facing into a stone furnace with no inserter between them will go here](./assets/direct-burner-furnace.png)
 
