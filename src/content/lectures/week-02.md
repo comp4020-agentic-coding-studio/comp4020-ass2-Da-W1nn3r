@@ -8,6 +8,7 @@ week: 2
 date: 2026-08-03
 teachers:
   - naledi-osei
+slides: /decks/week-02/
 related:
   - sessions/02-two-bases-one-verdict
 ---
