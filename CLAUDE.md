@@ -49,6 +49,22 @@ obvious so it's clear a real screenshot is still owed.
   generate the API — revert it before committing; `astro.config.ts` doesn't
   ship with that flag.)
 
+## Game accuracy: research before writing
+
+Any course content that describes a specific Factorio technique or topic
+(a mechanic, a ratio, a named strategy — "burner chains," boiler/steam
+ratios, belt balancers, and so on) must be checked against a real source
+(the [Factorio wiki](https://wiki.factorio.com/), the official forums, or
+current in-game behaviour) before it's written, not recalled from memory.
+This has already produced one real error: an earlier version of the Week 1
+deck described "burner chains" as running through burner inserters, when
+the actual mechanic is a mining drill depositing its output directly into
+whatever's immediately in front of it, including another drill's fuel
+tank — the inserter isn't there at all. Getting this wrong doesn't just
+read badly, it teaches an incorrect mental model to whoever reads the
+course. When adding or revising a slide, a lecture outline, or a tutorial
+practical, search for and cite the mechanic first, then write.
+
 ## Tone
 
 Dry and technical throughout — course copy, policies, commit messages,
