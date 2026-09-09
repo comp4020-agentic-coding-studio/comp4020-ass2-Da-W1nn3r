@@ -1,46 +1,46 @@
 ---
 title: Assignment 1
 description:
-  The first piece of graded work — a placeholder brief showing the shape every
-  assessment page follows
-week: 6
-due: 2027-04-12T12:00:00+10:00
-weight: 40
+  A bottleneck-diagnosis report on a supplied mid-game save, covering
+  everything from balancer theory to rail intersections.
+week: 8
+due: 2026-09-25T12:00:00+10:00
+weight: 20
 marking:
   mode: weighted
   criteria:
-    - name: Response to the brief
-      weight: 60
-    - name: Quality of execution
-      weight: 40
+    - name: Diagnosis accuracy
+      weight: 50
+    - name: Fix quality and justification
+      weight: 50
 spec:
-  - submitted by the deadline, in the format named below
-  - it does the thing the brief asks for, and a reader can tell that it does
+  - submitted by the deadline, as a save file plus a written report
+  - the report correctly identifies the save's actual bottleneck, not a
+    plausible-sounding but wrong one
+  - any proposed fix is justified with ratios or measurements, not vibes
   - the work is yours, with any assistance declared
 related:
-  - final-project
+  - group-project
 ---
-
-<!-- STARTER_CONTENT: replace this assessment brief, then remove this comment. -->
-
-Replace this brief. An assessment page has three jobs: pose the problem, say
-what is submitted, and say how it is marked.
 
 ## The brief
 
-> One sentence stating the problem, set as a blockquote so it reads as the thing
-> being asked rather than as commentary on it.
+> You are handed a save that runs, but under-produces. Find out why, and fix
+> it.
 
-Then a paragraph or two on what makes a strong response --- the room the brief
-leaves, and the judgement it is testing. Keep the provocation and the mechanics
-apart: a student should be able to read the first and know what to make, and
-read the second and know what to hand in.
+The supplied base looks fine at a glance — belts are full, furnaces are
+smoking, nothing is on fire. The point of this assignment is that "looks
+fine" and "is fine" are different claims. Somewhere in the chain from ore to
+finished product there is a ratio that doesn't hold, a buffer that's
+starved, or a splitter quietly feeding one side more than the other. Your
+job is to find the actual constraint — the one thing that, if relieved,
+raises overall output — and say how you know it's that one and not
+something else that merely looks suspicious.
 
 ## What you submit
 
-Name the artefact and the format. If evidence of process is part of the
-submission, say which files and what each is for.
-
-The optional `marking:` block renders a criterion table (weighted) or a marking
-statement (holistic) below; leave it out and say how the work is marked in
-prose.
+Your modified save file, plus a short written report: what the bottleneck
+was, the measurements or ratios that prove it, the fix you applied, and the
+throughput before and after. A report that names the right bottleneck but
+can't show its working scores lower than one that shows the working, even if
+the fix is the same.
