@@ -7,6 +7,7 @@ week: 7
 date: 2026-09-14
 teachers:
   - naledi-osei
+slides: /decks/week-07/
 related:
   - sessions/07-form-your-crew
   - assessments/group-project
