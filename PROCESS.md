@@ -1,53 +1,61 @@
 # Process overview
 
-<!-- TEMPLATE: this file is a shape to fill in, not a form. Replace everything
-     in it with your own overview, and delete this comment — `pnpm
-     check:evidence` will remind you if it's still here. -->
-
-Written by you, for a reader: how you got from the brief to the harness and
-agentic workflow behind this submission. Markers read this file and follow its
-citations; they don't trawl the repo for evidence you didn't point at.
-
-This file is the shape; the course site's
-[assessment page](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#what-you-submit)
-is the requirement, and its
-[word counts](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#word-counts)
-cover every deliverable.
-
 ## What I built
 
-One paragraph: the thing, and the idea behind it.
+Slop University's course site for "Factorio: Engineering Addiction"
+(`SLOP4130`) — a systems-engineering course taught entirely through the game
+Factorio, twelve dated weeks from hand-mined ore to a megabase, mapped onto
+the platform's fixed content model: a lecture and a tutorial per week, four
+assessments weighted to sum to 100, one real slide deck, and a policies page
+written for the course rather than left as starter text.
 
 ## How I got here
 
-The account of the process: how the work actually went, and how you knew the
-result was right. Tell it in whatever order makes it clear. A weekly prototype
-needs a paragraph or two; an assignment needs more.
+I started from a fully-worked 12-week syllabus (`Course_Outline.md`) rather
+than inventing one during the session, which meant the design work was
+mostly mapping, not authoring from nothing: which outline bullets become the
+lecture's `## Outline`, which become the tutorial's `practical`/`goal`
+frontmatter, and where `related:` should tie a week forward to an assessment.
+Before touching any real content collection file, I drafted all twelve weeks
+as plain markdown in a scratch `drafts/` folder for review — confirmed
+("Looks good start building") before any of it became a `src/content/`
+file — so the content decisions were made once, not iterated in place against
+the schema.
 
-Cite the record as you go, as links whose text is the commit hash or range and
-whose target is this repo's commit or compare URL, so a reader clicks straight
-to the evidence:
+Course identity and branding landed first
+([`d68c41a`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/d68c41a)),
+then the fixed collections one at a time: people
+([`b83b29b`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/b83b29b)),
+the four assessments
+([`b135e39`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/b135e39)),
+all twelve weeks of lectures and tutorials
+([`ccfd87a`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/ccfd87a)),
+and the deck plus policies
+([`8b8c76f`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/8b8c76f)).
+Hero and card art became placeholder boxes rather than original artwork, on
+explicit instruction — real in-game screenshots are being sourced separately
+([`1be7b5d`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/1be7b5d)).
 
-- one commit: [`a1b2c3d`](https://github.com/YOUR-ORG/YOUR-REPO/commit/a1b2c3d)
-- a range:
-  [`a1b2c3d...e4f5a6b`](https://github.com/YOUR-ORG/YOUR-REPO/compare/a1b2c3d...e4f5a6b)
+Knowing the result was right meant actually running the build, which
+surfaced two real problems rather than confirming everything was fine.
+First, `astro-theme-university`'s `astro:build:done` hook calls `npx` via
+`execFile` without `shell: true`, which fails with `spawn npx ENOENT` on
+Windows specifically (confirmed with a minimal repro, and confirmed CI runs
+on `ubuntu-latest` where this doesn't occur) — documented in `CLAUDE.md`
+rather than worked around permanently, since `astro.config.ts` is fixed.
+Second, once I temporarily unblocked that hook locally to actually see the
+accessibility check run, axe reported real violations — missing `<title>`,
+missing `lang`, no landmark region — on the `assessments/`, `lectures/`, and
+`people/` index pages. These `.mdx` pages had no `layout:` frontmatter field,
+so the theme's default-layout remark plugin (which only runs through
+Astro's `.md` pipeline) never wrapped them, unlike `sessions/index.astro`,
+which imported the layout explicitly. Fixed by pointing each at
+`src/layouts/PageLayout.astro`
+([`f7bed6f`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/f7bed6f)),
+and rebuilt clean: zero accessibility violations, no broken links.
 
-To pair a prompt with the commit it produced, quote the prompt (curated, not a
-full transcript) next to the citation:
-
-> the prompt, verbatim
-
-Screenshots are welcome where one carries the point better than a sentence does.
-Commit the file to this repo and link it with a **relative** path, which is what
-makes it render on GitHub: `![alt text](docs/before.png)`. Images don't count
-towards the word count and don't replace the citation.
-
-## Before you ship
-
-`pnpm check:evidence` verifies that this comment is gone, that your citations
-resolve to real commits, that a crit week's reflection entry is in
-`reflections/`, and that your `CLAUDE.md` is there. It checks that your account
-is traceable, not that it is good: that is the marker's call.
-
-Images aren't checked: unlike a citation whose SHA doesn't resolve, a broken
-image is visible the moment this file is rendered on GitHub.
+Last, I wrote `spec/course-content.test.ts` against the actual generated
+`dist/api/index.json` shape, to hold the four promises the schema doesn't
+check on its own — weights summing to 100, one lecture and one tutorial per
+week, a real linked deck, and non-empty `practical`/`goal` on every tutorial
+([`83d26e5`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/83d26e5)).
