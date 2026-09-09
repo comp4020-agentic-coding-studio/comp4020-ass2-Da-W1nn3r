@@ -14,9 +14,8 @@ Week 3 — Logistics I
 ## Splitters
 
 A splitter takes up to two input belts and up to two output belts and, by
-default, spreads items across the outputs 1:1. Every balancer in this
-lecture is built out of nothing but this one component, wired together
-differently.
+default, spreads items across the outputs 1:1. It's the first of two
+components every balancer in this lecture gets built from.
 
 - unfiltered, a splitter alternates which output gets the next item of each
   item type — it doesn't look at lanes to do this, it tracks each item type
@@ -56,8 +55,38 @@ belt it's on.
 - getting two items onto one belt, one per lane, is easy; splitting them
   back apart *cleanly*, each into its own single-item belt, needs one
   splitter per item and produces one full belt per item, not half a belt each
-- this same lane-locked behaviour is the detail that makes balancer design
-  harder than "wire some splitters together" — more on that shortly
+- splitters alone can never fix an uneven lane — moving an item off its lane
+  needs a different kind of connection, covered next
+
+---
+
+## T-junctions
+
+Run a belt into the *side* of another belt instead of through a splitter and
+you get a T-junction. Both lanes of the merging belt collapse onto a single
+lane of the belt it joins — a merge from the left lands entirely on the
+target's left lane, a merge from the right lands entirely on the right.
+
+- this is the move a splitter can't make: a T-junction crosses lane content
+  across the merging belt's own left/right divide, feeding both of it into
+  one lane on the other side
+- combine it with a splitter (which relocates whole belts freely but never
+  touches lane identity) and the two together can put any input's content on
+  any output's lane — a splitter-only network never can
+- merging onto a belt that's already full doesn't split evenly either: only
+  the upstream lane gets through, the far lane just backs up behind it —
+  worth testing directly rather than assuming it behaves like a splitter
+
+---
+
+## T-junctions, in practice
+
+![Two splitters each feeding a shared vertical belt from one side — the left splitter's output lands entirely on the belt's left lane, the right splitter's output lands entirely on the right lane](./assets/t-junction.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+Neither side's supply ever reaches the other lane — that one-sided landing is
+the entire mechanic, and the entire reason it's useful.
 
 ---
 
@@ -111,28 +140,34 @@ steady rate, or the reverse.
 
 ## Balancers
 
-Model a splitter network as a graph: each splitter is a node, each belt
-connecting two splitters is an edge. Because a splitter always sends an even
-share of what it receives to each of its outputs, this graph is enough to
-reason about where items end up — in principle.
+A balancer is expected to balance both belts and lanes — every output belt
+gets an even share of the input, *and* both lanes of every belt in the
+network stay even too. Model the network as a graph: splitters and
+T-junctions are nodes, belts connecting them are edges. Splitters move whole
+belts of content around and always split it evenly, but never cross a lane;
+T-junctions cross lanes, but only by collapsing a belt onto one lane of
+whatever it joins. A real balancer's graph needs both node types — a
+splitter-only graph can balance every belt and still be carrying a lopsided
+left/right split the whole time, because nothing in it was ever able to fix
+one.
 
 - a balancer is **throughput-unlimited** only if it meets both: 100%
   throughput when every input and output is in use, *and* any subset of
   inputs can still fully supply any subset of outputs — most hand-built
-  splitter arrangements satisfy the first and quietly fail the second
-- the standard 4-to-4 balancer is the textbook case: the graph model says 4
-  splitters are enough, and they are, for full load — but with only some
-  inputs and outputs active, two of the four outputs turn out to be fed by
-  only one splitter each, capping them at one belt's worth between them even
-  though two full belts feed that splitter
+  arrangements satisfy the first and quietly fail the second
+- the standard 4-to-4 balancer is the textbook case for the first
+  condition: a splitter-only graph model says 4 splitters are enough, and
+  they are, for full load — but with only some inputs and outputs active,
+  two of the four outputs turn out to be fed by only one splitter each,
+  capping them at one belt's worth between them even though two full belts
+  feed that splitter
 - the fix adds two more splitters purely to remove that internal
   chokepoint — 6 splitters, not 4, for a 4-to-4 balancer that's actually
   throughput-unlimited; the general formula for larger power-of-2 sizes is
   n·log₂(n) − n/2 splitters
-- lanes complicate this further: the graph model reasons about whole belts,
-  but a splitter never moves an item between lanes — a design that looks
-  balanced belt-by-belt can still be carrying an uneven left/right split the
-  graph never sees
+- that formula counts splitters, not T-junctions — it answers "does every
+  belt get an even share," which is a separate question from "does every
+  lane," and a design only earns the name "balancer" once both are true
 
 ---
 
@@ -142,8 +177,10 @@ reason about where items end up — in principle.
 
 *Source: Factorio Wiki, CC BY-NC-SA 3.0.*
 
-Read the labels top to bottom — that's the graph made visible, one splitter
-mixing two inputs at a time until every output carries a share of all four.
+Read the labels top to bottom — that's the splitter half of the graph made
+visible, one splitter mixing two inputs at a time until every output carries
+a share of all four. A real build still needs T-junctions worked into this
+same structure to answer for the lanes.
 
 ---
 
