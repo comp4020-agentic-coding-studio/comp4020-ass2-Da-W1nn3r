@@ -1,30 +1,30 @@
 ---
-title: Opening lecture
+title: Early-Game Foundations
 description:
-  The first lecture — what the course is, why it is shaped this way, and what
-  happens in week 1
+  Reading the map, hand-fed smelting and power ratios, and the first
+  automation research — the fundamentals everything later depends on.
 week: 1
-date: 2027-02-22
+date: 2026-07-27
 teachers:
-  - marisol-quaye
+  - naledi-osei
 slides: /decks/week-01/
 related:
-  - sessions/01-getting-started
+  - sessions/01-automate-the-basics
 ---
-
-<!-- STARTER_CONTENT: replace this lecture, then remove this comment. -->
-
-Replace this page. A lecture entry says what was covered and links to the pages
-that own the detail, so the lecture stays short and nothing is explained twice.
-
-The `related:` ref above is a graph edge: it renders on this page and on the
-session's, so declare a connection once, on whichever side is convenient.
-
-The page renders its `slides:` link automatically. Decks are markdown too,
-under `src/decks/`; the path is part of the lecture's API metadata.
 
 ## Outline
 
-- what the course is for
-- how the weeks are shaped
-- what to do before the first session
+- **Resource gathering** — reading the map before touching it: prioritising
+  big rocks for a lump-sum of ore, and laying out coal chains so early
+  boilers never starve mid-burn.
+- **Early-game smelting setups** — the ore-to-furnace ratio a single mining
+  drill can feed, why furnace rows beat scattered furnaces, and the stone
+  versus steel furnace upgrade decision.
+- **Research and power** — the starting boiler-to-steam-engine ratio, and
+  why Automation is the research priority almost everything else waits on.
+- **Hand-fed automation and hand-crafting** — what's worth crafting by hand
+  while the factory is still small, and what should wait for a real
+  production line.
+- **Designing for the future** — leaving deliberate empty space and belt
+  capacity now, even though nothing needs it yet. This thread continues
+  directly into Week 2.
