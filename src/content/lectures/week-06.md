@@ -7,6 +7,7 @@ week: 6
 date: 2026-08-31
 teachers:
   - naledi-osei
+slides: /decks/week-06/
 related:
   - sessions/06-bidirectional-rail-line
 ---
