@@ -7,6 +7,7 @@ week: 3
 date: 2026-08-10
 teachers:
   - naledi-osei
+slides: /decks/week-03/
 related:
   - sessions/03-build-a-balancer
 ---
