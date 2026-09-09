@@ -1,0 +1,139 @@
+---
+title: Diagnosing the Factory
+description: Week 8's lecture deck — brownouts and solar sizing, a real bottleneck-finding method, and parallel versus series production.
+---
+
+{/* _class: impact */}
+
+# Factorio: Engineering Addiction
+
+Week 8 — Diagnosing the Factory
+
+---
+
+## Brownouts
+
+When demand outstrips supply, the network doesn't pick winners and losers
+— every machine on it slows down together, in proportion to how much
+power it's actually getting.
+
+- if a network needs 300 kW total but only 180 kW is available, every
+  machine on it runs at 60% speed (180/300), not some machines at full
+  speed and others off
+- because the slowdown is even and proportional, a brownout shows up
+  everywhere at once — which is exactly why it's easy to mistake for a
+  bottleneck in whatever line you happen to be looking at
+- the brownout itself is a symptom: the actual fault is upstream, in
+  generation capacity or accumulator charge, not in the slowed machines
+  themselves
+
+---
+
+## Brownouts, in practice
+
+![The Factorio electric network info screen, showing satisfaction, production and accumulator charge summary bars all in green, alongside consumption, production and accumulator charge graphs over time broken down by consumer and producer type](./assets/electric-network-info.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+Satisfaction below 100% is the tell — check this screen before touching
+any individual machine, since a slow assembler here is innocent.
+
+---
+
+## Solar and accumulator ratio
+
+A solar field alone only covers daylight — accumulators are what carries
+that surplus through the night, and the two have to be sized together
+against each other, not separately.
+
+- the documented full day-night ratio on Nauvis is 25 solar panels to 21
+  accumulators (normal quality) for a self-sufficient network — roughly
+  0.84 accumulators per panel, often rounded to 6:5 for quick sizing
+- undersizing accumulators against panel count doesn't show up during the
+  day — it shows up as a brownout that starts a few hours after sunset,
+  once stored charge runs out
+- oversizing panels without matching accumulators just wastes daytime
+  surplus that has nowhere to go — the ratio, not the raw panel count, is
+  what determines whether the base survives the night
+
+---
+
+## Identifying bottlenecks
+
+Guessing which machine is "the" bottleneck from a slow output rate wastes
+time — the same symptom can come from three different layers, and they
+have to be checked in order, from the ground up.
+
+1. **Machine utilisation** — is the suspect machine actually running, or
+   is it idle waiting on an ingredient? Its status icon says which.
+2. **Buffer levels** — is a buffer chest or output slot sitting full or
+   empty? Full means downstream is the real constraint; empty means
+   upstream is.
+3. **Belt saturation** — is the belt itself running at capacity between
+   two points that are each individually fine? A saturated belt is a
+   bottleneck the two machines either side of it can't see.
+
+Checking in this order finds the actual constrained step instead of the
+first slow-looking machine you happen to notice.
+
+---
+
+## Parallel versus series production
+
+Once a line is bottlenecked, there are exactly two ways to add capacity —
+build another line beside it, or make the existing line faster — and they
+aren't interchangeable once ratios are already tight.
+
+- **parallel** (another identical line) adds throughput linearly and
+  doesn't touch the existing ratio, but costs the footprint and input
+  supply of a whole second line
+- **series** (speed modules, beacons, or a faster machine tier on the same
+  line) raises throughput without adding footprint, but changes the
+  machine's input consumption rate — every ratio feeding that machine has
+  to be rechecked, not just the machine itself
+- speeding up one step in an already-tight chain without touching the
+  others just moves the bottleneck one step over, it doesn't remove it
+
+---
+
+## Discussion: the everlasting chip shortage
+
+Green circuits are usually the first thing a growing base runs short of,
+and "build another green circuit line" is rarely the whole fix, because
+circuits sit at the base of almost every other recipe.
+
+- demand for green circuits grows with nearly everything else being
+  built, so a shortage here isn't isolated the way a shortage of a
+  specialised intermediate would be
+- adding a parallel green-circuit line without checking what it's now
+  competing with for copper and iron plate can just relocate the shortage
+  one step upstream
+- this is this week's diagnostic method applied to a specific,
+  practically inevitable case: check utilisation, buffers and saturation
+  before assuming "more circuits" is the fix
+
+---
+
+{/* _class: quote */}
+
+> A brownout tells you the network is short on power. It doesn't tell you which machine to blame — that's a different question, checked a different way.
+
+Diagnosis is a sequence, not a guess: identify which layer the symptom is
+actually coming from before changing anything.
+
+---
+
+## This week's practical
+
+```txt
+Goal: diagnose a supplied base showing a brownout and an unrelated
+      bottleneck, and fix both root causes — Assignment 1 is due this week
+Test: check utilisation, buffer levels and belt saturation in order,
+      keeping the power problem and the production problem separate
+Pass: the brownout's root cause is identified, not just the symptom; the
+      unrelated bottleneck is correctly separated from the power issue;
+      both are fixed, and the fix for one didn't mask or worsen the other
+```
+
+The same method — checked in the same order — is what Assignment 1 expects
+you to demonstrate in writing.

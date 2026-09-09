@@ -7,6 +7,7 @@ week: 8
 date: 2026-09-21
 teachers:
   - naledi-osei
+slides: /decks/week-08/
 related:
   - sessions/08-diagnose-the-factory
   - assessments/assignment-1
