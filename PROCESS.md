@@ -59,3 +59,33 @@ Last, I wrote `spec/course-content.test.ts` against the actual generated
 check on its own — weights summing to 100, one lecture and one tutorial per
 week, a real linked deck, and non-empty `practical`/`goal` on every tutorial
 ([`83d26e5`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/83d26e5)).
+
+## The factory simulator
+
+Beyond the fixed content model, the practicals needed something to point
+students at while they build: a canvas-based factory simulator at
+`/simulator/`, modelling belts, underground belts, splitters, inserters,
+assembling machines, power poles, and chests on a per-tick loop, with an
+editor UI (palette, inspector, bottleneck analysis) built up over several
+sessions and landed in one commit
+([`c174a64`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/c174a64)).
+Every numeric constant — belt throughput, inserter cycle times, chest slot
+counts, stack sizes — is cited against the Factorio wiki or forums rather
+than recalled from memory, the same standard `CLAUDE.md` holds course
+content to.
+
+Manual testing against the running simulator surfaced three real bugs, fixed
+in the same commit: the inspector wasn't rendering belt or inserter
+contents at all; an inserter feeding a multi-ingredient assembler would
+fixate on whichever ingredient was already at its input-buffer cap instead
+of switching to one the recipe still needed (a mixed-belt-pickup case the
+original implementation hadn't accounted for); and an idle inserter could
+freeze mid-swing still holding an item rather than settling empty-handed,
+which broke the "belts and inserters show their contents" mental model the
+inspector is supposed to support. Follow-up feedback removed the manual
+underground-belt entrance/exit toggle (placement-proximity auto-detection
+already covers the real workflow, so the manual override was dead weight),
+added a "Clear items" action to empty every in-flight/stored item without
+touching the placed layout or its configuration, and fixed a CSS
+cascade-ordering bug where the inspector panel would cover roughly half the
+canvas on landscape-oriented narrow viewports.
