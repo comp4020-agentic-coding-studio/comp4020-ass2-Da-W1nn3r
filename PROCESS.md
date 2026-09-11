@@ -134,3 +134,20 @@ sit in the main nav; the simulator itself picked up direct links from the
 Week 3, 4, and 9 tutorials, at the point in each practical where checking a
 layout in the simulator is cheaper than building it and finding out in-game
 ([`7c37a6f`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/7c37a6f)).
+
+## Policies and Help, folded into one Admin page
+
+Having both a Policies page and a Help page split closely related content
+across two nav entries and two URLs for no real reason — a student looking
+for the save-submission rule and a student looking for where their save
+file actually lives on disk are asking about the same thing from two
+directions. Merged both into a single page at `/admin/`, replacing both nav
+links with one. Added real hyperlinks to Factorio's GOG and Steam store
+pages, sourced by search rather than typed from memory, since a wrong game
+storefront link is exactly the kind of thing that looks fine and isn't. Also
+added an approved-mods list — seven visualisation/convenience mods that
+don't touch recipes or ratios, so a save built with them stays comparable to
+one without — linking each mod's page on the Factorio mod portal with its
+real name and description, fetched from the page rather than guessed from
+the URL slug
+([`bb8dcae`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/bb8dcae)).
