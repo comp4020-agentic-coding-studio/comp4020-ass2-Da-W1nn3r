@@ -1,0 +1,644 @@
+---
+import PageLayout from "../../layouts/PageLayout.astro";
+import { PALETTE } from "../../lib/simulator/editor";
+
+const groups: string[] = [...new Set(PALETTE.map((p) => p.group))];
+---
+
+<PageLayout
+  title="Factory simulator"
+  description="Lay out belts, inserters, assemblers, and power poles on a grid, run it, and find the bottleneck."
+>
+  <div class="sim-app">
+    <div class="sim-toolbar">
+      <button id="btn-play" type="button">Play</button>
+      <button id="btn-step" type="button">Step</button>
+      <label>
+        Speed
+        <select id="speed-select">
+          <option value="1">1x</option>
+          <option value="5">5x</option>
+          <option value="30">30x</option>
+        </select>
+      </label>
+      <button id="btn-rotate" type="button">Rotate (R)</button>
+      <button id="btn-clear" type="button">Clear layout</button>
+      <button id="btn-clear-items" type="button">Clear items</button>
+      <button id="btn-bottleneck" type="button">Find bottleneck (super-speed)</button>
+      <button id="btn-power-overlay" type="button">Power overlay: off</button>
+      <label>
+        Width <input id="resize-width" type="number" min="8" max="80" />
+      </label>
+      <label>
+        Height <input id="resize-height" type="number" min="8" max="80" />
+      </label>
+      <button id="btn-resize" type="button">Resize grid</button>
+      <span id="tick-readout" aria-live="polite"></span>
+    </div>
+    <p class="sim-hint">
+      Power poles only draw power for their whole network if at least one pole in that network
+      touches the grid's outer edge — tinted amber below.
+    </p>
+    <p class="sim-hint">
+      Underground belts auto-detect entrance vs. exit: placing one facing an existing, unpaired,
+      same-tier underground within range completes the pair automatically; a fresh, unpaired end
+      always starts as an entrance.
+    </p>
+    <p class="sim-hint">
+      With a belt tool selected, drag from a start tile to an end tile to lay a whole L-shaped run
+      in one motion. Press R while still holding the mouse button to swap which leg of the L comes
+      first.
+    </p>
+    <p class="sim-hint">
+      An inserter with no explicit filter, dropping into an assembler with a recipe set, only
+      picks up ingredients that recipe still needs more of — even off a belt carrying other items
+      too, and skipping an ingredient the input buffer is already full of in favour of one that
+      isn't. An inserter never picks anything up if its drop point has nowhere to put it, and so
+      idles empty-handed, except when dropping onto a belt or splitter, where holding an item
+      while waiting for lane room to free up is normal. When placing a power pole, its outline
+      previews blue if it would connect to an existing pole from here, black if it would place
+      unconnected.
+    </p>
+
+    <div class="sim-layout">
+      <aside class="sim-palette" aria-label="Entity palette">
+        <button class="palette-btn" data-tool="select" type="button">Select / inspect</button>
+        <button class="palette-btn" data-tool="delete" type="button">Delete</button>
+        {
+          groups.map((group) => (
+            <fieldset>
+              <legend>{group}</legend>
+              {PALETTE.filter((p) => p.group === group).map((p) => (
+                <button class="palette-btn" data-tool="place" data-spec-id={p.id} type="button">
+                  {p.label}
+                </button>
+              ))}
+            </fieldset>
+          ))
+        }
+      </aside>
+
+      <div class="sim-canvas-wrap">
+        <canvas id="sim-canvas" tabindex="0"></canvas>
+      </div>
+
+      <aside class="sim-inspector" aria-label="Inspector">
+        <h2>Inspector</h2>
+        <div id="inspector-body">
+          <p>Select an entity, or place one from the palette.</p>
+        </div>
+        <h2>Bottleneck result</h2>
+        <div id="bottleneck-body">
+          <p>Not run yet.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    import { CHEST_SLOTS, ITEM_CATALOG, RECIPES, TICKS_PER_SECOND } from "../../lib/simulator/constants";
+    import {
+      buildEntity,
+      buildGhostEntity,
+      computeBeltDragPath,
+      createEditorState,
+      handleClick,
+      PALETTE,
+      pointerToTile,
+      rotate,
+      type EditorState,
+      type PaletteSpec,
+    } from "../../lib/simulator/editor";
+    import { canPlace, clearAllItems, createState, placeEntity, removeEntity, type SimState } from "../../lib/simulator/grid";
+    import { isEntityPowered, wouldPoleConnect } from "../../lib/simulator/entities/power";
+    import { chestSlotsUsed } from "../../lib/simulator/entities/chest";
+    import { render, TILE, type GhostPreview } from "../../lib/simulator/render";
+    import type { Direction, Vec2 } from "../../lib/simulator/types";
+    import { tick as tickOnce } from "../../lib/simulator/simulate";
+    import { runBottleneckAnalysis } from "../../lib/simulator/bottleneck";
+    import { clearAutosave, loadFromLocalStorage, saveToLocalStorage } from "../../lib/simulator/serialize";
+
+    const canvas = document.getElementById("sim-canvas") as HTMLCanvasElement;
+    const ctx = canvas.getContext("2d")!;
+
+    let state: SimState = loadFromLocalStorage() ?? createState(32, 20);
+    canvas.width = state.width * TILE;
+    canvas.height = state.height * TILE;
+
+    const resizeWidthInput = document.getElementById("resize-width") as HTMLInputElement;
+    const resizeHeightInput = document.getElementById("resize-height") as HTMLInputElement;
+    const resizeBtn = document.getElementById("btn-resize") as HTMLButtonElement;
+    resizeWidthInput.value = String(state.width);
+    resizeHeightInput.value = String(state.height);
+
+    const editor: EditorState = createEditorState();
+    let playing = false;
+    let speedMultiplier = 1;
+    let bottleneckEntityId: number | null = null;
+    let tickAccumulator = 0;
+    let showPowerOverlay = false;
+
+    // Drag-to-place belts: mousedown fixes the start tile and (via editor.dir at that
+    // moment) which axis the path leaves on first; mousemove previews the L-shaped path
+    // to the hovered tile; mouseup commits it. R while dragging swaps which axis bends
+    // first instead of rotating (there's nothing to rotate mid-drag — the path's own
+    // per-tile directions come from start/end position, not editor.dir).
+    let beltDrag: { start: Vec2; bendFirst: "horizontal" | "vertical" } | null = null;
+    let suppressNextClick = false;
+
+    /** The palette spec of the currently-selected belt placement tool, or null if the
+     * current tool isn't placing a belt (drag-placement only applies to belts). */
+    function activeBeltSpec(): PaletteSpec | null {
+      return editor.tool.mode === "place" && editor.tool.spec.kind === "belt" ? editor.tool.spec : null;
+    }
+
+    const playBtn = document.getElementById("btn-play") as HTMLButtonElement;
+    const stepBtn = document.getElementById("btn-step") as HTMLButtonElement;
+    const rotateBtn = document.getElementById("btn-rotate") as HTMLButtonElement;
+    const clearBtn = document.getElementById("btn-clear") as HTMLButtonElement;
+    const clearItemsBtn = document.getElementById("btn-clear-items") as HTMLButtonElement;
+    const bottleneckBtn = document.getElementById("btn-bottleneck") as HTMLButtonElement;
+    const powerOverlayBtn = document.getElementById("btn-power-overlay") as HTMLButtonElement;
+    const speedSelect = document.getElementById("speed-select") as HTMLSelectElement;
+    const tickReadout = document.getElementById("tick-readout") as HTMLSpanElement;
+    const inspectorBody = document.getElementById("inspector-body") as HTMLDivElement;
+    const bottleneckBody = document.getElementById("bottleneck-body") as HTMLDivElement;
+
+    function specById(id: string): PaletteSpec | undefined {
+      return PALETTE.find((p) => p.id === id);
+    }
+
+    function setActiveToolButton(activeEl: HTMLElement | null): void {
+      document.querySelectorAll<HTMLButtonElement>(".palette-btn").forEach((b) => b.classList.remove("active"));
+      activeEl?.classList.add("active");
+    }
+
+    document.querySelectorAll<HTMLButtonElement>(".palette-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const mode = btn.dataset.tool;
+        if (mode === "select") editor.tool = { mode: "select" };
+        else if (mode === "delete") editor.tool = { mode: "delete" };
+        else if (mode === "place") {
+          const spec = specById(btn.dataset.specId ?? "");
+          if (!spec) return;
+          editor.tool = { mode: "place", spec };
+        }
+        setActiveToolButton(btn);
+      });
+    });
+
+    canvas.addEventListener("mousemove", (evt) => {
+      const pos = pointerToTile(canvas, evt);
+      editor.hover = pos.x >= 0 && pos.y >= 0 && pos.x < state.width && pos.y < state.height ? pos : null;
+    });
+    canvas.addEventListener("mouseleave", () => {
+      editor.hover = null;
+    });
+    canvas.addEventListener("mousedown", (evt) => {
+      if (!activeBeltSpec()) return;
+      const pos = pointerToTile(canvas, evt);
+      if (pos.x < 0 || pos.y < 0 || pos.x >= state.width || pos.y >= state.height) return;
+      beltDrag = { start: pos, bendFirst: editor.dir === 1 || editor.dir === 3 ? "horizontal" : "vertical" };
+    });
+    window.addEventListener("mouseup", (evt) => {
+      if (!beltDrag) return;
+      const drag = beltDrag;
+      beltDrag = null;
+      const spec = activeBeltSpec();
+      if (!spec) return;
+      const pos = pointerToTile(canvas, evt);
+      const end = {
+        x: Math.min(Math.max(pos.x, 0), state.width - 1),
+        y: Math.min(Math.max(pos.y, 0), state.height - 1),
+      };
+      if (end.x === drag.start.x && end.y === drag.start.y) return; // no movement — the click handler places a single tile
+      const path = computeBeltDragPath(drag.start, end, drag.bendFirst);
+      let changed = false;
+      for (const t of path) {
+        const entity = buildEntity(state, spec, t.pos, t.dir, editor.undergroundRole);
+        if (!canPlace(state, entity)) continue;
+        placeEntity(state, entity);
+        changed = true;
+      }
+      if (changed) saveToLocalStorage(state);
+      renderInspector();
+      suppressNextClick = true;
+    });
+    canvas.addEventListener("click", (evt) => {
+      if (suppressNextClick) {
+        suppressNextClick = false;
+        return;
+      }
+      const pos = pointerToTile(canvas, evt);
+      if (pos.x < 0 || pos.y < 0 || pos.x >= state.width || pos.y >= state.height) return;
+      const changed = handleClick(state, editor, pos);
+      if (changed) saveToLocalStorage(state);
+      renderInspector();
+    });
+    // Bound to `document`, not the canvas: a palette <button> keeps DOM focus after
+    // being clicked, so a canvas-only listener would stop seeing R presses right when
+    // you'd want them — pressing R to orient the next placement after picking a tool.
+    document.addEventListener("keydown", (evt) => {
+      const target = evt.target as HTMLElement | null;
+      if (target && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return;
+      if (evt.key.toLowerCase() === "r") {
+        if (beltDrag) beltDrag.bendFirst = beltDrag.bendFirst === "horizontal" ? "vertical" : "horizontal";
+        else rotate(editor);
+      }
+    });
+
+    rotateBtn.addEventListener("click", () => rotate(editor));
+
+    clearBtn.addEventListener("click", () => {
+      if (!confirm("Clear the whole layout? This can't be undone.")) return;
+      state = createState(state.width, state.height);
+      editor.selectedEntityId = null;
+      bottleneckEntityId = null;
+      saveToLocalStorage(state);
+      renderInspector();
+      renderBottleneck(null);
+    });
+
+    clearItemsBtn.addEventListener("click", () => {
+      if (!confirm("Clear all items from belts, inserters, buffers, chests, and sinks? This can't be undone.")) return;
+      clearAllItems(state);
+      saveToLocalStorage(state);
+      renderInspector();
+    });
+
+    resizeBtn.addEventListener("click", () => {
+      if (!confirm("Resize the grid? This clears the current layout and can't be undone.")) return;
+      const w = Math.min(80, Math.max(8, Math.round(Number(resizeWidthInput.value)) || state.width));
+      const h = Math.min(80, Math.max(8, Math.round(Number(resizeHeightInput.value)) || state.height));
+      state = createState(w, h);
+      canvas.width = state.width * TILE;
+      canvas.height = state.height * TILE;
+      resizeWidthInput.value = String(state.width);
+      resizeHeightInput.value = String(state.height);
+      editor.selectedEntityId = null;
+      editor.hover = null;
+      bottleneckEntityId = null;
+      clearAutosave();
+      saveToLocalStorage(state);
+      renderInspector();
+      renderBottleneck(null);
+    });
+
+    playBtn.addEventListener("click", () => {
+      playing = !playing;
+      playBtn.textContent = playing ? "Pause" : "Play";
+    });
+
+    stepBtn.addEventListener("click", () => {
+      tickOnce(state);
+      saveToLocalStorage(state);
+      renderInspector();
+    });
+
+    speedSelect.addEventListener("change", () => {
+      speedMultiplier = Number(speedSelect.value);
+    });
+
+    bottleneckBtn.addEventListener("click", () => {
+      const result = runBottleneckAnalysis(state, 3600);
+      bottleneckEntityId = result.entityId;
+      renderBottleneck(result);
+      renderInspector();
+      saveToLocalStorage(state);
+    });
+
+    powerOverlayBtn.addEventListener("click", () => {
+      showPowerOverlay = !showPowerOverlay;
+      powerOverlayBtn.textContent = `Power overlay: ${showPowerOverlay ? "on" : "off"}`;
+    });
+
+    function itemOptions(selected: string | null): string {
+      let html = `<option value="">(none)</option>`;
+      for (const item of ITEM_CATALOG) html += `<option value="${item}" ${item === selected ? "selected" : ""}>${item}</option>`;
+      return html;
+    }
+    function bufferContents(buffer: Record<string, number>): string {
+      const entries = Object.entries(buffer).filter(([, count]) => count > 0);
+      if (entries.length === 0) return "(empty)";
+      return entries.map(([item, count]) => `${item} x${count}`).join(", ");
+    }
+    function laneContents(lane: { item: string; pos: number }[]): string {
+      if (lane.length === 0) return "(empty)";
+      return lane.map((i) => `${i.item}@${i.pos.toFixed(2)}`).join(", ");
+    }
+    function tunnelContents(tunnel: { item: string; remaining: number }[]): string {
+      if (tunnel.length === 0) return "(empty)";
+      return tunnel.map((i) => `${i.item} (${i.remaining.toFixed(2)} tiles left)`).join(", ");
+    }
+    function recipeOptions(selected: string | null): string {
+      let html = `<option value="">(none)</option>`;
+      for (const r of RECIPES) html += `<option value="${r.id}" ${r.id === selected ? "selected" : ""}>${r.name}</option>`;
+      return html;
+    }
+
+    function rateFromHistory(history: { tick: number; total: number }[]): number {
+      if (history.length < 2) return 0;
+      const first = history[0];
+      const last = history[history.length - 1];
+      const elapsedTicks = last.tick - first.tick;
+      if (elapsedTicks <= 0) return 0;
+      return ((last.total - first.total) / elapsedTicks) * TICKS_PER_SECOND * 60;
+    }
+
+    function renderInspector(): void {
+      const id = editor.selectedEntityId;
+      const entity = id !== null ? state.entities.get(id) : undefined;
+      if (!entity) {
+        inspectorBody.innerHTML = "<p>Select an entity, or place one from the palette.</p>";
+        return;
+      }
+
+      let html = `<p><strong>${entity.kind}</strong> #${entity.id}</p>`;
+
+      if (entity.kind === "inserter" || entity.kind === "splitter") {
+        html += `<label>Filter <select id="f-filter">${itemOptions(entity.filter)}</select></label>`;
+      }
+      if (entity.kind === "inserter" && entity.type !== "burner") {
+        const powered = isEntityPowered(state, entity);
+        html += `<p>Powered: ${powered ? "yes" : "no — no pole in this network touches the grid edge"}</p>`;
+      }
+      if (entity.kind === "inserter") {
+        html += `<p>Holding: ${entity.held ? `${entity.held} x${entity.heldCount}` : "(empty)"}</p>`;
+      }
+      if (entity.kind === "belt" || entity.kind === "underground-belt") {
+        html += `<p>Lane 0 (left): ${laneContents(entity.lanes[0])}</p>`;
+        html += `<p>Lane 1 (right): ${laneContents(entity.lanes[1])}</p>`;
+      }
+      if (entity.kind === "underground-belt") {
+        html += `<p>Tunnel, lane 0: ${tunnelContents(entity.tunnel[0])}</p>`;
+        html += `<p>Tunnel, lane 1: ${tunnelContents(entity.tunnel[1])}</p>`;
+      }
+      if (entity.kind === "splitter") {
+        html += `<label>Filter side <select id="f-filterside">
+          <option value="left" ${entity.filterSide === "left" ? "selected" : ""}>Left</option>
+          <option value="right" ${entity.filterSide === "right" ? "selected" : ""}>Right</option>
+        </select></label>`;
+        html += `<label>Input priority <select id="f-inpri">
+          <option value="none" ${entity.inputPriority === "none" ? "selected" : ""}>Balanced</option>
+          <option value="left" ${entity.inputPriority === "left" ? "selected" : ""}>Left</option>
+          <option value="right" ${entity.inputPriority === "right" ? "selected" : ""}>Right</option>
+        </select></label>`;
+        html += `<label>Output priority <select id="f-outpri">
+          <option value="none" ${entity.outputPriority === "none" ? "selected" : ""}>Balanced</option>
+          <option value="left" ${entity.outputPriority === "left" ? "selected" : ""}>Left</option>
+          <option value="right" ${entity.outputPriority === "right" ? "selected" : ""}>Right</option>
+        </select></label>`;
+      }
+      if (entity.kind === "assembler") {
+        html += `<label>Recipe <select id="f-recipe">${recipeOptions(entity.recipeId)}</select></label>`;
+        html += `<p>Progress: ${Math.round(entity.progress * 100)}%</p>`;
+        html += `<p>Powered: ${entity.poweredThisTick ? "yes" : "no"}</p>`;
+        html += `<p>Input buffer: ${bufferContents(entity.inputBuffer)}</p>`;
+        html += `<p>Output buffer: ${bufferContents(entity.outputBuffer)}</p>`;
+      }
+      if (entity.kind === "chest") {
+        html += `<p>Slots used: ${chestSlotsUsed(entity)}/${CHEST_SLOTS[entity.tier]}</p>`;
+        html += `<p>Contents: ${bufferContents(entity.inventory)}</p>`;
+      }
+      if (entity.kind === "inf-loader") {
+        html += `<label>Lane 0 (near) <select id="f-lane0">${itemOptions(entity.laneItems[0])}</select></label>`;
+        html += `<label>Lane 1 (far) <select id="f-lane1">${itemOptions(entity.laneItems[1])}</select></label>`;
+      }
+      if (entity.kind === "item-source") {
+        html += `<label>Item <select id="f-item">${itemOptions(entity.item).replace('value=""', "")}</select></label>`;
+      }
+      if (entity.kind === "item-sink") {
+        html += `<p>Total received: ${entity.totalCount}</p><p>Rate: ${rateFromHistory(entity.history).toFixed(1)} items/min</p>`;
+      }
+      if (entity.kind === "pole") {
+        const powered = entity.networkId !== null && state.poweredNetworks.has(entity.networkId);
+        html += `<p>Network: ${entity.networkId ?? "unconnected"}</p><p>Powered: ${powered ? "yes" : "no"}</p>`;
+      }
+
+      html += `<button id="f-delete" type="button">Delete this entity</button>`;
+      inspectorBody.innerHTML = html;
+
+      const filterSelect = document.getElementById("f-filter") as HTMLSelectElement | null;
+      filterSelect?.addEventListener("change", () => {
+        if (entity.kind === "inserter" || entity.kind === "splitter") entity.filter = filterSelect.value || null;
+      });
+      const filterSideSelect = document.getElementById("f-filterside") as HTMLSelectElement | null;
+      filterSideSelect?.addEventListener("change", () => {
+        if (entity.kind === "splitter") entity.filterSide = filterSideSelect.value as "left" | "right";
+      });
+      const inPriSelect = document.getElementById("f-inpri") as HTMLSelectElement | null;
+      inPriSelect?.addEventListener("change", () => {
+        if (entity.kind === "splitter") entity.inputPriority = inPriSelect.value as "left" | "right" | "none";
+      });
+      const outPriSelect = document.getElementById("f-outpri") as HTMLSelectElement | null;
+      outPriSelect?.addEventListener("change", () => {
+        if (entity.kind === "splitter") entity.outputPriority = outPriSelect.value as "left" | "right" | "none";
+      });
+      const recipeSelect = document.getElementById("f-recipe") as HTMLSelectElement | null;
+      recipeSelect?.addEventListener("change", () => {
+        if (entity.kind === "assembler") entity.recipeId = recipeSelect.value || null;
+      });
+      const itemSelect = document.getElementById("f-item") as HTMLSelectElement | null;
+      itemSelect?.addEventListener("change", () => {
+        if (entity.kind === "item-source") entity.item = itemSelect.value;
+      });
+      const lane0Select = document.getElementById("f-lane0") as HTMLSelectElement | null;
+      lane0Select?.addEventListener("change", () => {
+        if (entity.kind === "inf-loader") entity.laneItems[0] = lane0Select.value || null;
+      });
+      const lane1Select = document.getElementById("f-lane1") as HTMLSelectElement | null;
+      lane1Select?.addEventListener("change", () => {
+        if (entity.kind === "inf-loader") entity.laneItems[1] = lane1Select.value || null;
+      });
+      const deleteBtn = document.getElementById("f-delete") as HTMLButtonElement | null;
+      deleteBtn?.addEventListener("click", () => {
+        removeEntity(state, entity.id);
+        editor.selectedEntityId = null;
+        saveToLocalStorage(state);
+        renderInspector();
+      });
+    }
+
+    function renderBottleneck(result: ReturnType<typeof runBottleneckAnalysis> | null): void {
+      if (!result) {
+        bottleneckBody.innerHTML = "<p>Not run yet.</p>";
+        return;
+      }
+      bottleneckBody.innerHTML = `
+        <p>${result.reason}</p>
+        <p>Throughput at sink(s): ${result.throughputPerMinute.toFixed(1)}/min</p>
+      `;
+    }
+
+    function computeGhost(): GhostPreview | null {
+      if (editor.tool.mode !== "place" || !editor.hover) return null;
+      const entity = buildGhostEntity(state, editor.tool.spec, editor.hover, editor.dir, editor.undergroundRole);
+      const valid = canPlace(state, entity);
+      const connects = entity.kind === "pole" ? wouldPoleConnect(state, entity) : undefined;
+      return { entity, valid, connects };
+    }
+
+    function computeBeltDragPreview(): { pos: Vec2; dir: Direction; valid: boolean }[] | null {
+      const spec = activeBeltSpec();
+      if (!beltDrag || !spec || !editor.hover) return null;
+      const path = computeBeltDragPath(beltDrag.start, editor.hover, beltDrag.bendFirst);
+      return path.map((t) => {
+        const entity = buildGhostEntity(state, spec, t.pos, t.dir, editor.undergroundRole);
+        return { pos: t.pos, dir: t.dir, valid: canPlace(state, entity) };
+      });
+    }
+
+    let lastFrame = performance.now();
+    function frame(now: number): void {
+      const dt = (now - lastFrame) / 1000;
+      lastFrame = now;
+      if (playing) {
+        tickAccumulator += dt * TICKS_PER_SECOND * speedMultiplier;
+        const maxTicksPerFrame = 500; // caps a stalled tab from trying to catch up forever
+        let ran = 0;
+        while (tickAccumulator >= 1 && ran < maxTicksPerFrame) {
+          tickOnce(state);
+          tickAccumulator -= 1;
+          ran += 1;
+        }
+        if (ran > 0) tickReadout.textContent = `Tick ${state.tick}`;
+      }
+      const beltDragPreview = computeBeltDragPreview();
+      render(ctx, state, {
+        hover: editor.hover,
+        selectedEntityId: editor.selectedEntityId,
+        bottleneckEntityId,
+        ghost: beltDragPreview ? null : computeGhost(),
+        beltDragPreview,
+        showPowerOverlay,
+      });
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    setInterval(() => saveToLocalStorage(state), 5000);
+
+    renderInspector();
+    renderBottleneck(null);
+  </script>
+</PageLayout>
+
+<style>
+  .sim-app {
+    grid-column: full;
+    display: grid;
+    gap: var(--at-spacing-lg, 1rem);
+    padding-inline: var(--at-spacing-lg, 1rem);
+  }
+
+  .sim-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .sim-toolbar input[type="number"] {
+    width: 4rem;
+  }
+
+  .sim-hint {
+    font-size: 0.85rem;
+    color: var(--at-text-muted, #666);
+    margin: 0;
+  }
+
+  .sim-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr 280px;
+    grid-template-areas: "palette canvas inspector";
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .sim-palette {
+    grid-area: palette;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .sim-palette fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    border: 1px solid var(--at-divider, #ddd);
+    border-radius: 4px;
+  }
+
+  .palette-btn {
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .palette-btn.active {
+    outline: 2px solid #4d8ff0;
+  }
+
+  .sim-canvas-wrap {
+    grid-area: canvas;
+    overflow: auto;
+    border: 1px solid var(--at-divider, #ddd);
+  }
+
+  #sim-canvas {
+    display: block;
+  }
+
+  .sim-inspector {
+    grid-area: inspector;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .sim-inspector label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-block-end: 0.5rem;
+  }
+
+  /* Narrow portrait (most phones): plenty of vertical scroll room, so stack everything
+     in one column — canvas first, then the controls below it. */
+  @media (width < 900px) {
+    .sim-layout {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "canvas"
+        "palette"
+        "inspector";
+    }
+  }
+
+  /* Narrow landscape (phones held sideways): viewport height is scarce, so the old
+     single-column stack put the inspector's full, unbounded height below the canvas —
+     on a short screen that alone could reach half the visible area or more. Put the
+     canvas on top at full width, then the palette and inspector side by side below it,
+     each capped and independently scrollable so together they stay a small, fixed strip
+     instead of growing with their content. Overrides the portrait rule above (same
+     `width < 900px` range, further qualified by orientation) and must come after it, and
+     after the base .sim-palette/.sim-inspector rules, to win the cascade at equal
+     specificity. */
+  @media (width < 900px) and (orientation: landscape) {
+    .sim-layout {
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas:
+        "canvas canvas"
+        "palette inspector";
+    }
+
+    .sim-palette,
+    .sim-inspector {
+      max-height: 32vh;
+      overflow-y: auto;
+    }
+  }
+</style>
