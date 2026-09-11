@@ -3,7 +3,7 @@
 ## What I built
 
 Slop University's course site for "Factorio: Engineering Addiction"
-(`SLOP4130`) — a systems-engineering course taught entirely through the game
+(`SLOP2130`) — a systems-engineering course taught entirely through the game
 Factorio, twelve dated weeks from hand-mined ore to a megabase, mapped onto
 the platform's fixed content model: a lecture and a tutorial per week, four
 assessments weighted to sum to 100, one real slide deck, and a policies page
@@ -12,15 +12,13 @@ written for the course rather than left as starter text.
 ## How I got here
 
 I started from a fully-worked 12-week syllabus (`Course_Outline.md`) rather
-than inventing one during the session, which meant the design work was
-mostly mapping, not authoring from nothing: which outline bullets become the
-lecture's `## Outline`, which become the tutorial's `practical`/`goal`
-frontmatter, and where `related:` should tie a week forward to an assessment.
-Before touching any real content collection file, I drafted all twelve weeks
-as plain markdown in a scratch `drafts/` folder for review — confirmed
-("Looks good start building") before any of it became a `src/content/`
-file — so the content decisions were made once, not iterated in place against
-the schema.
+than inventing one during the session, so the design work was mapping, not
+authoring from nothing: which outline bullets become the lecture's
+`## Outline`, which become the tutorial's `practical`/`goal` frontmatter, and
+where `related:` ties a week forward to an assessment. I drafted all twelve
+weeks as plain markdown in a scratch `drafts/` folder first — confirmed
+("Looks good start building") before any became a `src/content/` file — so
+content decisions were made once, not iterated in place against the schema.
 
 Course identity and branding landed first
 ([`d68c41a`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/d68c41a)),
@@ -36,9 +34,8 @@ Hero and card art became placeholder boxes rather than original artwork, on
 explicit instruction — real in-game screenshots are being sourced separately
 ([`1be7b5d`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/1be7b5d)).
 
-Knowing the result was right meant actually running the build, which
-surfaced two real problems rather than confirming everything was fine.
-First, `astro-theme-university`'s `astro:build:done` hook calls `npx` via
+Actually running the build, rather than trusting it would work, surfaced two
+real problems. First, `astro-theme-university`'s `astro:build:done` hook calls `npx` via
 `execFile` without `shell: true`, which fails with `spawn npx ENOENT` on
 Windows specifically (confirmed with a minimal repro, and confirmed CI runs
 on `ubuntu-latest` where this doesn't occur) — documented in `CLAUDE.md`
@@ -60,6 +57,35 @@ check on its own — weights summing to 100, one lecture and one tutorial per
 week, a real linked deck, and non-empty `practical`/`goal` on every tutorial
 ([`83d26e5`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/83d26e5)).
 
+## Week 1 deck: catching a content-overflow bug
+
+Fixing the burner-chain and big-rocks mechanics
+([`3777873`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/3777873))
+still left three Week 1 slides — burner chains, direct burner-to-furnace,
+boiler/steam power — each packing a paragraph, three bullets, and an image
+onto one slide. Loading the deck in a browser, rather than trusting the MDX,
+showed why: the last bullet cut off mid-sentence at the slide edge, and
+scrolling down revealed the placeholder image pushed out of view underneath.
+Both captured by checking out `3777873` for this "before":
+
+![The "Burner chains" slide at commit 3777873, viewport height clipping the
+third bullet point mid-sentence after "don't bolt a burner inserter onto a
+drill to 'skim' the
+excess"](reflections/screenshots/slide-content-cutoff-3777873.png)
+
+![The same slide scrolled down, showing the full bullet list followed by a
+dashed-border placeholder box labelled "PLACEHOLDER — burner chain
+screenshot" pushed below the
+fold](reflections/screenshots/slide-content-vertical-3777873.png)
+
+Fixed by splitting each overloaded slide into a text slide and a separate
+image slide, so the image no longer competes with body text for space, and
+adding a fourth slide pair for hand-fed assembling machines, which the deck
+hadn't covered before. The three placeholder PNGs were replaced with real
+Factorio Wiki screenshots (CC BY-NC-SA 3.0), each with descriptive alt text
+and a source caption
+([`56be479`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/56be479)).
+
 ## The factory simulator
 
 Beyond the fixed content model, the practicals needed something to point
@@ -74,18 +100,37 @@ counts, stack sizes — is cited against the Factorio wiki or forums rather
 than recalled from memory, the same standard `CLAUDE.md` holds course
 content to.
 
-Manual testing against the running simulator surfaced three real bugs, fixed
-in the same commit: the inspector wasn't rendering belt or inserter
-contents at all; an inserter feeding a multi-ingredient assembler would
-fixate on whichever ingredient was already at its input-buffer cap instead
-of switching to one the recipe still needed (a mixed-belt-pickup case the
-original implementation hadn't accounted for); and an idle inserter could
-freeze mid-swing still holding an item rather than settling empty-handed,
-which broke the "belts and inserters show their contents" mental model the
-inspector is supposed to support. Follow-up feedback removed the manual
+Manual testing against the running simulator surfaced many real bugs over
+development — far more than the handful worth naming here — spanning
+tick-engine interactions between entities and the editor's add/edit overlay
+UI. Among them, fixed in the same commit: the inspector wasn't rendering belt
+or inserter contents at all; an inserter feeding a multi-ingredient assembler
+would fixate on whichever ingredient was already at its input-buffer cap
+instead of switching to one the recipe still needed (a mixed-belt-pickup
+case the original implementation hadn't accounted for); and an idle inserter
+could freeze mid-swing still holding an item instead of settling
+empty-handed, breaking the "belts and inserters show their contents" model
+the inspector supports. Follow-up feedback removed the manual
 underground-belt entrance/exit toggle (placement-proximity auto-detection
-already covers the real workflow, so the manual override was dead weight),
-added a "Clear items" action to empty every in-flight/stored item without
-touching the placed layout or its configuration, and fixed a CSS
-cascade-ordering bug where the inspector panel would cover roughly half the
-canvas on landscape-oriented narrow viewports.
+already covers the real workflow, making the override dead weight), added a
+"Clear items" action to empty all in-flight/stored items without touching
+the layout or its configuration, and fixed a CSS cascade bug where the
+inspector panel covered roughly half the canvas on landscape-oriented narrow
+viewports.
+
+## Closing gaps: real hero image, course code, and a Help page
+
+A last pass replaced the remaining placeholder and wired up content that had
+been sitting unlinked. The home page's `hero-home.avif` placeholder box
+became a real screenshot (a rocket silo mid-launch), and the course code
+changed from `SLOP4130` to `SLOP2130`, which also meant updating the
+`level` field the schema's `superRefine` cross-checks against the code's
+digits. The Week 8 diagnostic tutorial now links its supplied base
+(`Base_Analysis.zip`) as a direct download rather than assuming students
+already had it. A new Help page collects the practical logistics that don't
+belong in course content proper — where to buy Factorio, and where each OS
+puts Factorio's save folder — and took over the simulator link that used to
+sit in the main nav; the simulator itself picked up direct links from the
+Week 3, 4, and 9 tutorials, at the point in each practical where checking a
+layout in the simulator is cheaper than building it and finding out in-game
+([`7c37a6f`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/7c37a6f)).
