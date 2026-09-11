@@ -12,7 +12,7 @@ export const graphCollections = ["sessions", "assessments", "lectures", "people"
 
 export const courseApiCollections = [
   ...graphCollections.map((key) => ({ key })),
-  { key: "policies", dir: "pages/policies" },
+  { key: "admin", dir: "pages/admin" },
 ];
 
 export const siteConfig = defineSiteConfig({
@@ -24,8 +24,7 @@ export const siteConfig = defineSiteConfig({
     { text: sessionLabels.plural, href: "/sessions/" },
     { text: "Assessment", href: "/assessments/" },
     { text: "People", href: "/people/" },
-    { text: "Policies", href: "/policies/" },
-    { text: "Help", href: "/help/" },
+    { text: "Admin", href: "/admin/" },
   ],
 
   licence: "CC-BY-NC-SA-4.0",
