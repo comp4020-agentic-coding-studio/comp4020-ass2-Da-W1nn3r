@@ -26,7 +26,8 @@ related:
 ## Before the tutorial
 
 Bring last week's save, with a bus or equivalent supply of iron and copper
-plate already running.
+plate already running. Check your assembler ratios in the
+[factory simulator](/simulator/) before building the line for real.
 
 ## In the tutorial
 

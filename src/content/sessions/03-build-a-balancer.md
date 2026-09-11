@@ -27,7 +27,9 @@ related:
 ## Before the tutorial
 
 Bring last week's save. You'll need a clear patch of floor and a supply of
-belts, splitters and underground belts.
+belts, splitters and underground belts. The [factory simulator](/simulator/)
+is a quick way to test a balancer layout before committing belts and
+splitters in-game.
 
 ## In the tutorial
 

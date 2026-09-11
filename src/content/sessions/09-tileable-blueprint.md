@@ -27,6 +27,8 @@ related:
 ## Before the tutorial
 
 Bring last week's save, with roboport coverage and bots already available.
+The [factory simulator](/simulator/) can check that a candidate layout tiles
+cleanly before you spend bot time capturing the blueprint.
 
 ## In the tutorial
 

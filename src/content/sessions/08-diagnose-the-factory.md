@@ -25,7 +25,8 @@ related:
 ## Before the tutorial
 
 Assignment 1 is due this week — submit it before the tutorial if you
-haven't already.
+haven't already. Download the supplied base ahead of time:
+[Base_Analysis.zip](/downloads/base-analysis.zip).
 
 ## In the tutorial
 

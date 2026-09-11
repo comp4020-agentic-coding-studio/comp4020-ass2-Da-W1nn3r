@@ -7,7 +7,7 @@ they arrived. Everything else — course identity, all `src/content/` entries,
 
 ## Fixed contract — do not drift from these without updating `spec/`
 
-- Course code keeps the pre-assigned digits `130` (`SLOP4130`).
+- Course code keeps the pre-assigned digits `130` (`SLOP2130`).
 - Assessment `weight` values sum to exactly 100.
 - All 12 teaching weeks stay populated with exactly one `sessions` node and
   one `lectures` node each, every date inside `startDate`/`endDate`.

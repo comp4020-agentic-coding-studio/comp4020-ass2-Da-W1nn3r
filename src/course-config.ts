@@ -44,11 +44,11 @@ export const slopCourseMetaSchema = z
 // The code's last three digits (130) were assigned to this repo when it was
 // provisioned, and no other course in the cohort has them.
 export const courseMeta = slopCourseMetaSchema.parse({
-  code: "SLOP4130",
+  code: "SLOP2130",
   title: "Factorio: Engineering Addiction",
   session: "Semester 2",
   year: 2026,
-  level: 4,
+  level: 2,
   startDate: "2026-07-27",
   endDate: "2026-11-02",
   description:

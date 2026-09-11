@@ -2,7 +2,7 @@
 import Card from "astro-theme-university/components/Card.astro";
 import CardGrid from "astro-theme-university/components/CardGrid.astro";
 import ContentLayout from "astro-theme-university/layouts/ContentLayout.astro";
-import heroImage from "../assets/images/hero-home.avif";
+import heroImage from "../assets/images/hero-home.jpg";
 import { courseMeta } from "../course-config";
 import { sessionLabels, siteConfig } from "../site-config";
 ---
@@ -11,7 +11,7 @@ import { sessionLabels, siteConfig } from "../site-config";
   title={`${courseMeta.code}: ${courseMeta.title}`}
   description={courseMeta.description}
   heroImage={heroImage}
-  heroImageAlt="Placeholder hero image — a screenshot of a sprawling Factorio base will go here"
+  heroImageAlt="A sprawling Factorio base viewed from above, belts and pipes threading between assemblers toward a rocket silo mid-launch at the centre"
   {...siteConfig}
 >
   <ul class="course-tags" aria-label="Course tags">
