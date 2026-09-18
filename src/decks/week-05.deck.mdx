@@ -17,16 +17,13 @@ Walking is the baseline every other option is measured against — each
 vehicle buys speed, cargo space, or both, at a different cost.
 
 - the **car** trades a fuel slot for speed well above walking pace, with a
-  small cargo hold — cheap, early, and still favoured by some players
-  purely for outrunning trouble rather than fighting it
-- the **tank** is slower and less maneuverable than a player on foot, but
-  carries a submachine gun, a short-range flamethrower and a cannon —
-  durability and firepower over mobility
-- the **train** (next week's topic) trades route flexibility for speed and
-  cargo capacity over long, fixed distances
-- the **spidertron** takes no fuel at all — its speed comes only from
-  exoskeleton equipment fitted into its own equipment grid, and it can
-  cross terrain a wheeled vehicle can't
+  small cargo hold — cheap and early, favoured for outrunning trouble
+- the **tank** is slower and less maneuverable than walking, but carries a
+  submachine gun, a flamethrower and a cannon — durability over mobility
+- the **train** (next week) trades route flexibility for speed and cargo
+  capacity over long, fixed distances
+- the **spidertron** takes no fuel — its speed comes from exoskeleton
+  equipment in its own grid, and it crosses terrain wheels can't
 
 ---
 
@@ -52,17 +49,47 @@ three independent things: time passing, cumulative pollution produced, and
 nests destroyed. All of it is driven by total pollution *produced*, not by
 how much of the cloud you've managed to contain.
 
-- destroying a nest bumps evolution a fixed amount regardless of nest type
-  — clearing nests is a safety decision, not a way to make the remaining
-  biters weaker
-- pollution has a second, separate job: pollution reaching a nest is what
-  triggers actual attacks, on its own schedule — containing the cloud
-  reduces attack frequency even though it does nothing for evolution
-  already accrued
-- nests also expand on their own timer, claiming unclaimed territory
-  outward, stopping only when they reach an occupied area (another nest,
-  or a player structure) — left alone, expansion eventually fills every
-  explored area
+- each source has a fixed weight per unit: time adds 0.000004/second,
+  destroying a spawner adds 0.002 (same for every spawner type — not
+  worms), pollution adds 0.0000009 per unit produced
+- the three weighted totals are summed, then squashed into the 0-1 range
+  by `evolution_factor = total / (1 + total)` — this is why evolution
+  climbs fast early and crawls near 1.0, not a hand-tuned late-game curve
+
+---
+
+## Evolution's diminishing marginal effect
+
+- the same action's *marginal* effect shrinks as evolution rises: any
+  increase is multiplied by `(1 - evolution_factor)²`, so destroying a
+  nest at evolution 0 adds the full 0.002, but the same kill at evolution
+  0.5 adds only a quarter of that, 0.0005
+
+---
+
+## Pollution's second job, and nest expansion
+
+Evolution isn't pollution's only effect, and nests aren't purely passive
+between attacks — both run on their own separate schedules.
+
+- pollution has a second job: pollution reaching a nest triggers actual
+  attacks, on its own schedule — containing the cloud reduces attack
+  frequency even though it does nothing for evolution already accrued
+- nests also expand on their own timer, claiming territory outward until
+  they reach an occupied area — left alone, expansion fills every explored
+  area
+
+---
+
+## Evolution weights, in practice
+
+![A wiki diagram of the three evolution-factor weights — time, pollution and destroyed spawners — shown as separate contributing tracks that sum before being squashed into the 0-1 evolution factor](./assets/evolution-weights.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+Three independent tracks feeding one shared total — raising evolution from
+any one of them raises it for all of them, since the game only ever sees
+the combined number.
 
 ---
 
@@ -78,33 +105,259 @@ it going forward, not cleaning up what's already out there.
 
 ---
 
-## Turret creep, firepower and kiting
+## Reaching the same evolution factor, three ways
 
-Turret creep advances a defensive line by building the next turret just
-inside the range of the one behind it, letting the position push forward
-without ever leaving a gap undefended.
+Any of the three sources alone can drive evolution to the same value —
+the numbers below are what *each one* takes on its own, holding the other
+two at zero.
 
-- walls only block melee contact — they don't stop projectile or spit
-  damage, and big and behemoth biters can reach two tiles, hitting whatever
-  is directly behind a single wall layer
-- a wall's real job is buying a turret time: it keeps melee attackers at
-  arm's length so the turret keeps firing instead of getting hit, not
-  making the turret invulnerable
-- kiting uses a vehicle's speed advantage (the car, mainly) to stay outside
-  an enemy's attack range while still doing damage — useful against
-  spitters and worms specifically, since their damage is ranged and
-  otherwise ignores your own speed entirely
+```txt
+evolution   pollution alone   time alone   destroyed spawners alone
+   10%          123k             7.7 hrs           56
+   50%         1.111M           69.4 hrs           500
+   90%           10M           625.0 hrs          4,500
+```
+
+---
+
+## Reading the three-ways table
+
+- reaching 50% evolution from time alone takes under three days of a
+  world simply existing, running or not — the clock never stops
+- reaching it from spawners alone means 500 kills, at a shrinking marginal
+  gain per kill the closer you get — the last hundred cost far more than
+  the first hundred
+
+---
+
+## Evolution, in practice — by time
+
+![A wiki graph plotting evolution factor from 0 to 1 against elapsed real time, the curve rising steeply at first and flattening toward 1.0](./assets/evolution-by-time.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+Same flattening shape as the pollution-only curve — every source feeds the
+same squashing formula.
+
+---
+
+## Evolution, in practice — by spawners
+
+![A wiki graph plotting evolution factor from 0 to 1 against cumulative destroyed spawners, the curve rising steeply at first and flattening toward 1.0](./assets/evolution-by-spawners.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+Every source produces the same diminishing-returns curve — this graph and
+the time-based one on the previous slide are shaped identically on
+purpose.
+
+---
+
+## Nest expansion
+
+Nests don't just sit still producing pollution — they claim new territory
+on their own schedule.
+
+- roughly every 60 to 4 minutes (the interval shrinks as evolution rises),
+  a nest sends 5-20 units to found a new nest — the target chunk is picked
+  within a 7-chunk radius by a score that only counts *how many* player
+  structures and enemy spawners are nearby, never what those structures
+  cost or how big they are
+- that scoring is exactly why a single pipe run through open ground is an
+  unusually cheap deterrent — it counts the same as a wall for suppressing
+  expansion into that chunk, at a fraction of the resource cost
+
+---
+
+## Nest attacks
+
+Attacks run on a second, separate schedule, triggered by pollution rather
+than by a timer alone.
+
+- once pollution reaches a nest, it musters a group and launches an attack
+  roughly every 1 to 10 minutes
+- if some of the mustered units haven't arrived at the rendezvous point
+  yet, the attack waits up to an additional 2 minutes for stragglers
+  before going anyway
+
+---
+
+## Biter pathing
+
+Biters heading to attack a target take the shortest path that accounts for
+terrain, but not for player-built obstacles like walls — what happens next
+depends on how much detour those obstacles cost.
+
+- if there's a clear route around an obstacle that isn't much longer, the
+  group takes it and never touches the obstacle at all
+- if there's no clear route around, or going around would mean a large
+  detour, the group attacks whatever is blocking the direct path instead
+
+---
+
+## The maze tactic, and breaking off early
+
+- this is exploitable on purpose: a maze of walls with no clean way around
+  forces an attacking group through a chosen corridor, tower-defense style
+  — the tactic only works because the detour-cost rule is real, not because
+  biters are simply attracted to walls
+- a biter that comes within range of a military structure or unit while
+  travelling breaks off early and attacks that instead, using the same
+  shortest-path logic against the new, closer target
+
+---
+
+## Turret creep
+
+Turret creep is an offensive tactic: advance on a nest by placing turrets
+just ahead of the last ones, retreating after each placement, until the
+turrets are close enough to kill it.
+
+- a gun turret's 18-tile range already beats every biter's melee reach and
+  a behemoth spitter's 16-tile spit — a turret line wins that engagement
+  once placed; creep exists only because turrets must be built within the
+  *player's* own reach, not because they're outranged
+
+---
+
+## Turret creep: the worm exception
+
+- worms are static, don't chase, but outrange the turret that's meant to
+  counter them — small worms reach 25 tiles, medium 30, big 38, behemoth
+  48, all well past 18. A worm gets to shoot first and keep shooting
+  throughout the whole creep-in; the turret doesn't return fire until it's
+  already inside the worm's range, not the other way round
+
+---
+
+## Turret creep: damage math
+
+- piercing rounds do 8 damage/shot at 10 shots/second — 80 DPS per turret,
+  enough to drop a freshly-spawned 350 HP spawner in under five seconds.
+  The same math against a max-evolution 3,500 HP spawner takes ten times
+  as long, which is the real reason creep stalls once behemoths show up:
+  the spawner's health scaled with evolution, the turret's damage didn't
+- the placement limit forces a run-in, place, retreat cycle — turrets can
+  only be placed within reach, so the line "creeps" forward rather than
+  being planned from range
 
 ---
 
 ## Turret creep, in practice
 
+![A wiki screenshot of a dense cluster of biter nests and worms spread across open grassland, the target a player approaches on foot before any turrets go down](./assets/turret-creep.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+This is the "before": no wall, no fixed line, just a nest cluster and a
+player about to place the first turret within reach of it — everything
+that follows is run-in, place, retreat, repeated.
+
+---
+
+## Worms
+
+Worms are static — never chasing, expanding, or leaving their spawn tile —
+but everything else about them is built to punish getting close.
+
+- worm tier is gated by evolution during expansion (map-generated worms
+  ignore this): medium needs evolution ≥0.3, big ≥0.5, behemoth ≥0.9 — the
+  further from the starting area, the stronger the worms map generation
+  places regardless of current evolution
+- range climbs sharply by tier: small 25 tiles, medium 30, big 38,
+  behemoth 48 — every tier already clears the gun turret's 18-tile range
+- big and behemoth worms resist up to 70% of fire damage, and behemoth
+  worms resist 80% of laser damage — a flamethrower or laser line built
+  for biters and spitters underperforms badly against a worm nest by
+  comparison
+
+---
+
+## Worms, in practice
+
+![A wiki animation of a worm's attack, firing an acid projectile at a target from a fixed position without moving](./assets/worm-attack.gif)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+It never advances and never retreats — every worm engagement is decided by
+whether you can close 25-48 tiles of open range before it decides you're
+in range of it.
+
+---
+
+## Firepower and kiting
+
+- walls only block melee contact, not projectile or spit damage — big and
+  behemoth biters reach 1.5 tiles regardless of a single wall layer, and a
+  spitter's 13-16 tile spit range makes a wall irrelevant to it entirely
+- a spitter's acid puddle outlasts the hit that made it: every tier's
+  puddle sits for 32 seconds, doing 7.2 acid/second for the small tier up
+  to 360/second for the behemoth tier, and slows anything standing in it
+  by 30-60% for 2 seconds per contact — the puddle, not just the
+  projectile, is what makes standing still in a spitter fight expensive
+
+---
+
+## Kiting and laser upkeep
+
+- kiting uses a vehicle's speed to stay outside an enemy's attack range
+  while still doing damage — useful against spitters and worms, whose
+  ranged damage otherwise ignores your speed
+- laser turrets trade ammo logistics for power draw: no supply chain to
+  feed, but 1.2 MW while firing against 24 kW idle means a laser wall
+  needs power headroom sized for a real attack, not just its average draw
+
+---
+
+## Firepower and kiting, in practice
+
 ![A wiki screenshot of a dense mass of biters attacking a defensive line, with turret muzzle flashes visible along a factory's edge](./assets/turret-wall.png)
 
 *Source: Factorio Wiki, CC BY-NC-SA 3.0.*
 
-The line holds or doesn't based on whether the turrets out-range and
-out-sustain what's arriving, not on how the wall looks.
+This is what a finished, static line looks like mid-attack — the wall
+stops nothing on its own, every bit of stopping power is coming from the
+turrets behind it.
+
+---
+
+## Static defences and flamethrowers
+
+A defensive line meant to sit in one place and hold indefinitely has a
+different job than turret creep's advance — and a different weapon choice
+follows from it.
+
+- flamethrower turrets deal damage in a spreading area rather than to one
+  target at a time, so a mixed wave of small, medium and big biters dies
+  faster per shot than the same wave against single-target gun or laser
+  fire
+- their fire also lingers on the ground briefly, keeping damage applied to
+  anything still standing in it — a static line gets to spend that DPS on
+  crowd density it doesn't have to aim
+
+---
+
+## Flamethrowers: trade-offs
+
+- the trade-off is fuel logistics and range: flamethrower turrets need a
+  piped fuel supply and have a minimum range, so they pair with — not
+  replace — gun or laser turrets covering what's too close to burn safely
+- fire is a poor answer to worms specifically: big and behemoth worms
+  resist up to 70% of fire damage (see the Worms slide), so a flamethrower
+  line sized for a biter wave burns through nowhere near as fast against
+  a nest defended by higher-tier worms
+
+---
+
+## Static defences, in practice
+
+![A wiki screenshot of a flamethrower turret spraying a stream of fire across a wall of approaching biters along a factory's perimeter](./assets/flamethrower-turret.webp)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+The fire keeps burning ground it already touched — that lingering area
+damage, not raw per-shot power, is what a static line is actually buying
+with the fuel cost.
 
 ---
 
@@ -113,9 +366,10 @@ out-sustain what's arriving, not on how the wall looks.
 Not every threat is a straight firepower fight — poison capsules and
 combat robots solve problems that turrets and guns don't.
 
-- poison capsules deal heavy damage to worms specifically (little to
-  nests), with far more range than a grenade — the direct answer to a worm
-  a player can't safely walk up to
+- poison capsules deal heavy damage to worms specifically — spawners
+  aren't affected by poison damage at all, so this is a worm tool, not a
+  nest-clearing one — with far more range than a grenade, the direct
+  answer to a worm a player can't safely walk up to
 - combat robots (defender, distractor and destroyer, in rising cost order)
   follow the player or hold position and fight automatically, useful for
   soaking or distributing damage during an attack run on a nest rather than

@@ -10,6 +10,7 @@
     "typecheck": "astro check",
     "check": "pnpm typecheck && pnpm test",
     "check:evidence": "node scripts/check-evidence.ts",
+    "check:overflow": "node scripts/check-deck-overflow.ts",
     "test": "pnpm build && vitest run spec",
     "test:template": "vitest run scripts"
   },
@@ -28,6 +29,7 @@
     "@types/node": "^24.0.0",
     "lightningcss": "^1.32.0",
     "pagefind": "^1.5.2",
+    "puppeteer-core": "^25.11.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10"
   },

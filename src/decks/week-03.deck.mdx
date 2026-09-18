@@ -42,6 +42,37 @@ at the other, with nothing to interact with in between.
 
 ---
 
+## Belt throughput
+
+Speed and density together decide how much a belt can actually carry —
+"throughput" is just their product, and each belt tier only moves the
+number.
+
+- belt speed is 1.875, 3.75 and 5.625 tiles/second for basic (yellow),
+  fast (red) and express (blue) respectively — each tier moving exactly
+  twice as fast as the last, then half again
+- every belt holds up to 8 items per tile at full density, so max
+  throughput is 15, 30 and 45 items/second for the same three tiers
+- an underground belt pair stores whatever's in transit between its two
+  ends: at its maximum 4-tile gap a basic pair holds up to 44 items,
+  an express pair at its maximum 8-tile gap holds up to 72 — that stored
+  buffer is invisible until the entrance is blocked and it starts backing
+  up
+
+---
+
+## Underground belt tiers, in practice
+
+![Three underground belt pairs side by side — basic, fast and express — each shown at its own maximum crossing gap of 4, 6 and 8 tiles respectively](./assets/underground-belt-tiers.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+The gap grows by 2 tiles per tier, but the buffer inside it grows faster
+than that — a longer, faster-moving belt segment holds more items in
+transit at once.
+
+---
+
 ## Belt sides
 
 Every belt carries two independent lanes, left and right, that can hold two
@@ -68,14 +99,13 @@ lane of the belt it joins — a merge from the left lands entirely on the
 target's left lane, a merge from the right lands entirely on the right.
 
 - this is the move a splitter can't make: a T-junction crosses lane content
-  across the merging belt's own left/right divide, feeding both of it into
-  one lane on the other side
-- combine it with a splitter (which relocates whole belts freely but never
-  touches lane identity) and the two together can put any input's content on
-  any output's lane — a splitter-only network never can
-- merging onto a belt that's already full doesn't split evenly either: only
-  the upstream lane gets through, the far lane just backs up behind it —
-  worth testing directly rather than assuming it behaves like a splitter
+  across the merging belt's own left/right divide, feeding both into one
+  lane on the other side
+- combine it with a splitter (relocates whole belts freely, never touches
+  lane identity) and the two together can put any input's content on any
+  output's lane — a splitter-only network never can
+- merging onto a belt that's already full doesn't split evenly: only the
+  upstream lane gets through, the far lane backs up behind it
 
 ---
 
@@ -92,23 +122,18 @@ the entire mechanic, and the entire reason it's useful.
 
 ## Inserters and belt sides
 
-An inserter's pickup and drop-off lane both depend on its rotation relative
-to the belt it's working — not on where it happens to be standing.
+An inserter's pickup and drop-off lane both depend on its rotation
+relative to the belt it's working, not on where it stands.
 
-- **drop-off**: facing a belt that runs perpendicular to the inserter, it
-  places on the far lane; facing one that runs parallel (same or opposite
-  direction), it places on the belt's right-hand lane
-- **pickup**: on a perpendicular belt it prefers the near lane, because
-  that's the faster grab; on a parallel or opposite-facing belt it prefers
-  the left-hand lane
-- curved belt sections add exceptions to both rules, and community testing
-  has turned up specific direction combinations where an inserter behaves as
-  if it's aware of the belt's shape, not just its own facing — treat the
-  above as the general case, not an absolute guarantee
-- practical consequence: rotating an inserter, or changing the belt layout
-  behind it, can silently move which lane it reads from or writes to — a
-  working line that starts starving one lane after a layout tweak is usually
-  this, not a broken inserter
+- **drop-off**: facing a perpendicular belt, it places on the far lane;
+  facing a parallel belt, the right-hand lane
+- **pickup**: on a perpendicular belt it prefers the near lane, the
+  faster grab; on a parallel belt the left-hand lane
+- curved sections add exceptions to both rules — treat these as the
+  general case, not a guarantee
+- rotating an inserter, or changing the belt behind it, can silently
+  move which lane it reads or writes — a line starving one lane after a
+  layout tweak is usually this
 
 ---
 
@@ -120,6 +145,45 @@ to the belt it's working — not on where it happens to be standing.
 
 Every arrow here is the same rule applied at a different angle — worth
 tracing by hand once rather than memorising as a table.
+
+---
+
+## Belts on the circuit network
+
+A belt can report what's on it to a circuit network — the connection this
+week's balancer theory has been silently assuming doesn't exist yet.
+
+- **Enable/disable**: gate the belt itself on a condition — the belt
+  stops moving items when the condition isn't met, same idea as gating
+  an inserter
+- **read belt contents**, in one of two modes: **Pulse** sends a signal
+  for exactly 1 tick the moment an item enters the belt (a count of
+  events), **Hold** sends the signal continuously for as long as
+  matching items remain on the belt (a count of what's currently there)
+- a third variant of Hold mode reads the *entire* connected belt line,
+  counting through underground belts but not across a splitter or a
+  sideloaded belt — connectivity for this purpose isn't the same as
+  connectivity for items
+
+---
+
+## Belts on the circuit network, in practice
+
+![The transport belt's circuit network connection panel, showing the Enable/disable condition and the read-contents mode selector](./assets/belt-circuit-gui.png)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+---
+
+## A worked example
+
+![A belt reading its contents onto the circuit network, with a combinator downstream reacting to the presence of a specific item type](./assets/belt-circuit-example.gif)
+
+*Source: Factorio Wiki, CC BY-NC-SA 3.0.*
+
+This is Hold mode read directly into a combinator condition — the
+combinator's output changes exactly when the watched item is physically
+present on the belt, and reverts the instant it isn't.
 
 ---
 
@@ -155,19 +219,24 @@ one.
   throughput when every input and output is in use, *and* any subset of
   inputs can still fully supply any subset of outputs — most hand-built
   arrangements satisfy the first and quietly fail the second
-- the standard 4-to-4 balancer is the textbook case for the first
-  condition: a splitter-only graph model says 4 splitters are enough, and
-  they are, for full load — but with only some inputs and outputs active,
-  two of the four outputs turn out to be fed by only one splitter each,
-  capping them at one belt's worth between them even though two full belts
-  feed that splitter
+
+---
+
+## The 4-to-4 balancer
+
+The standard 4-to-4 balancer is the textbook case for the throughput
+condition: a splitter-only graph model says 4 splitters are enough, and
+they are, for full load. But with only some inputs and outputs active, two
+of the four outputs turn out fed by only one splitter each — capped at one
+belt's worth between them even though two full belts feed that splitter.
+
 - the fix adds two more splitters purely to remove that internal
   chokepoint — 6 splitters, not 4, for a 4-to-4 balancer that's actually
   throughput-unlimited; the general formula for larger power-of-2 sizes is
   n·log₂(n) − n/2 splitters
 - that formula counts splitters, not T-junctions — it answers "does every
-  belt get an even share," which is a separate question from "does every
-  lane," and a design only earns the name "balancer" once both are true
+  belt get an even share," a separate question from "does every lane," and
+  a design only earns the name "balancer" once both are true
 
 ---
 

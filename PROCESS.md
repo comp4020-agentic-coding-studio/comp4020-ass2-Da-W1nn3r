@@ -151,3 +151,45 @@ one without — linking each mod's page on the Factorio mod portal with its
 real name and description, fetched from the page rather than guessed from
 the URL slug
 ([`bb8dcae`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/bb8dcae)).
+
+## Deepening the decks, then catching what didn't fit
+
+The nine decks with room to grow (Weeks 1, 3–6, 8–10, 12) were expanded
+against the Factorio Wiki's own pages rather than recalled from memory, per
+`CLAUDE.md`'s research-before-writing rule — real formulas (evolution's
+squashing curve, mining and belt throughput, the fluid pressure-equalisation
+example), real hardware limits (roboport charging slots, rail-station
+inserter counts, pole connection limits), and new slides for subtopics the
+outline called for but the deck never covered (logistic chest types, circuit
+wildcards, wire-colour independence). Every new image is a real Factorio
+Wiki screenshot with descriptive alt text and a source caption, matching the
+existing convention, not a generated placeholder.
+
+Deepening nine decks at once, onto a canvas that Reveal.js fixes at 1280×720
+with no autofit (astromotion's own design — content taller than that clips
+or runs off the edge silently), was always going to overflow some slides.
+Rather than eyeball each one, I built a real check: a script driving headless
+Chrome through every slide of every deck, reusing astromotion's own
+`measureSlide`/`TEXT_SELECTOR` internals (the same measurement its
+`astromotion-check` bin uses) so a "fits" verdict means the same thing
+here as it does upstream. That bin's own CLI turned out to be unusable
+on Windows — its wrapper spawns its own `astro dev` server via
+`spawn("npx", ..., { shell: true })`, which still throws an unhandled
+`spawn npx ENOENT` here, a separate bug from the already-documented
+`astro-theme-university` build-hook one — so the script talks to a dev
+server already running instead of starting its own.
+
+That check found 45 real overflow/clip violations across the nine expanded
+decks. Fixed by splitting each overloaded slide along the deck's existing
+`---` convention — new headings, no facts removed — never by cutting content
+to make it fit, consistent with the same research-before-writing standard
+that put the content there. A clean re-run confirmed all twelve decks fit.
+
+The check earned a permanent place in the repo rather than being thrown away
+once the immediate fixes landed: `scripts/check-deck-overflow.ts`, wired up
+as `pnpm check:overflow`, so a future deck edit can be checked the same way
+without re-deriving any of this. The Windows-specific CLI bug and the
+workaround (`puppeteer-core` driving Chrome directly, `findChrome()`'s
+Windows gap covered by an Edge-path fallback) are documented in `CLAUDE.md`
+next to the existing Windows build-hook limitation, rather than left as
+tribal knowledge.

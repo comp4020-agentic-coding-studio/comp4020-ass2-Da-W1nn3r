@@ -54,6 +54,19 @@ here") and a visible source caption under the image in the deck markdown.
   `universityTheme()` unblocks the hook enough to run axe/link checks and
   generate the API — revert it before committing; `astro.config.ts` doesn't
   ship with that flag.)
+- **A second, separate Windows limitation**: `astromotion` ships its own
+  real-browser slide-overflow/clip checker as the `astromotion-check` bin,
+  but that bin's CLI wrapper spawns its own `astro dev` server via
+  `spawn("npx", ..., { shell: process.platform === "win32" })`, which still
+  throws an unhandled `spawn npx ENOENT` on Windows even with `shell: true`
+  set. `scripts/check-deck-overflow.ts` (run via `pnpm check:overflow`)
+  works around this by skipping the CLI wrapper: it imports astromotion's
+  own exported `measureSlide`/`TEXT_SELECTOR` and `findChrome`/`chromeArgs`
+  directly and drives them against a dev server you start yourself
+  (`pnpm dev`, left running). `findChrome()` has no Windows-specific path,
+  so on Windows either set `ASTROMOTION_CHROME_PATH` to a real Chromium
+  browser (Microsoft Edge, which ships with Windows, works) or rely on the
+  script's built-in fallback to Edge's default install location.
 
 ## Game accuracy: research before writing
 

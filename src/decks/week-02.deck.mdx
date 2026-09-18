@@ -66,17 +66,19 @@ Everything below this slide is a way of not ending up here by accident.
 ## The bus
 
 A small number of parallel belts, carrying the handful of intermediates
-almost everything else needs — iron plates, copper plates, circuits — run
-the length of the base. Production branches split material off sideways
-instead of each building its own supply line from scratch.
+almost everything else needs, run the length of the base — production
+branches split material off sideways instead of building their own
+supply line.
 
 - the fix for spaghetti's actual cost: a belt's contents and position are
   now readable on sight, because the bus's lane order doesn't change
-- it's a bootstrapping tool, not the most efficient possible layout — plan
-  for 2-3x the belt capacity you think you need, because widening a bus
-  later means rebuilding it
-- eventually outgrown: high-volume intermediates eat too many lanes, and
-  distant branches pull unevenly
+- a bootstrapping tool, not the most efficient layout — plan for 2-3x
+  the capacity you think you need, since widening a bus later means
+  rebuilding it
+- eventually outgrown: high-volume intermediates eat too many lanes,
+  distant branches pull unevenly, and a hard width limit forces new
+  branches further down its length, costing more time per branch, not
+  less
 
 ---
 
@@ -94,30 +96,54 @@ exactly the discipline spaghetti never had.
 ## Bot base
 
 Logistics robots move items between named chest types instead of belts
-carrying them. A provider chest is where output goes; a requester chest
-is where a recipe's input gets pulled from; storage chests catch whatever
-isn't currently requested.
+carrying them, and "provider" and "requester" aren't the whole taxonomy —
+five distinct chest types is what actually makes the network legible.
+
+- **passive provider**: sits until something requests it. **active
+  provider**: highest pickup priority, robots proactively empty it even
+  with nothing requesting yet — for output that can't afford to back up
+  (a nuclear reactor's spent fuel cells is the wiki's own example)
+- **storage**: catch-all for anything unrequested, optionally filtered to
+  one item. **requester**: pulls up to 1,000 request slots from the
+  network — paste a recipe onto one to auto-request 30 seconds of its
+  ingredients
+
+---
+
+## Bot base: buffer chests
+
+- **buffer**: requests like a requester, but its stock is invisible to
+  ordinary requesters and other buffer chests by default — only
+  construction bots, personal requests, and a requester with "request
+  from buffer chests" explicitly enabled can draw from it
+- stocking a buffer and expecting any nearby requester to pull from it is
+  the standard beginner mistake this invisibility causes — a buffer is a
+  reserve, not a fifth kind of passive provider
+
+---
+
+## Bot base, continued
 
 - robots only travel where roboport coverage overlaps — two roboports
   connect their logistic ranges the same way two belts connect lanes
-- trades belt-routing complexity for power draw and bot-count overhead:
-  more robots doing more trips costs more power than a well-laid belt
-  moving the same volume
-- a careless provider chest full of the wrong thing can swamp storage
-  with bots frantically moving it — provider chests want a deliberate job,
-  not "somewhere to put stuff"
+- a logistic robot carries one item by default (four with the cargo-size
+  research) at 3 tiles/second, dropping to 20% speed once network power
+  runs low — trades belt-routing complexity for power draw and bot-count
+  overhead, not for a free win
+- a careless active-provider chest full of the wrong thing gets emptied
+  into storage immediately, by design — provider chests want a deliberate
+  job, not "somewhere to put stuff"
 
 ---
 
 ## Bot base, in practice
 
-![Two roboports on open ground, connected by a dashed line showing their logistic ranges overlap enough for robots to travel between them](./assets/roboport-network.jpg)
+![A repeating grid of logistic chests, each holding a different item type and fed by its own belt and pipe, laid out as a modular bot-supplied production block](./assets/bot-base.webp)
 
 *Source: Factorio Wiki, CC BY-NC-SA 3.0.*
 
-That overlapping range is the entire mechanic — no overlap, no shared
-network, and a requester chest on one side can't be filled from a provider
-on the other.
+Each chest here is a named request, not a generic buffer — the grid reads
+by chest type and contents, the same way a bus reads by lane.
 
 ---
 
