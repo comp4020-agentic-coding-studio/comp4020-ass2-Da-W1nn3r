@@ -154,7 +154,7 @@ the URL slug
 
 ## Deepening the decks, then catching what didn't fit
 
-The nine decks with room to grow (Weeks 1, 3–6, 8–10, 12) were expanded
+The ten decks with room to grow (Weeks 1, 3–6, 8–12) were expanded
 against the Factorio Wiki's own pages rather than recalled from memory, per
 `CLAUDE.md`'s research-before-writing rule — real formulas (evolution's
 squashing curve, mining and belt throughput, the fluid pressure-equalisation
@@ -165,7 +165,7 @@ wildcards, wire-colour independence). Every new image is a real Factorio
 Wiki screenshot with descriptive alt text and a source caption, matching the
 existing convention, not a generated placeholder.
 
-Deepening nine decks at once, onto a canvas that Reveal.js fixes at 1280×720
+Deepening ten decks at once, onto a canvas that Reveal.js fixes at 1280×720
 with no autofit (astromotion's own design — content taller than that clips
 or runs off the edge silently), was always going to overflow some slides.
 Rather than eyeball each one, I built a real check: a script driving headless
@@ -179,11 +179,19 @@ on Windows — its wrapper spawns its own `astro dev` server via
 `astro-theme-university` build-hook one — so the script talks to a dev
 server already running instead of starting its own.
 
-That check found 45 real overflow/clip violations across the nine expanded
-decks. Fixed by splitting each overloaded slide along the deck's existing
-`---` convention — new headings, no facts removed — never by cutting content
-to make it fit, consistent with the same research-before-writing standard
-that put the content there. A clean re-run confirmed all twelve decks fit.
+That check found 45 real overflow/clip violations across nine decks — most
+of the newly expanded ones (Weeks 3 and 11 fit as written), plus Week 2's
+"Bot base" slide, which needed the same split treatment despite not being
+part of this expansion at all. Fixed by splitting each overloaded slide
+along the deck's existing `---` convention — new headings, no facts
+removed — never by cutting content to make it fit, consistent with the same
+research-before-writing standard that put the content there. One slide's
+worth of oversized wiki screenshots got a general fix instead of a
+one-off: `theme.css` now caps inline deck images at 340px tall, since the
+wiki serves screenshots at whatever resolution it happens to host them,
+sometimes well over 1900px wide. A clean re-run confirmed all twelve decks
+fit
+([`7cc3391`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass2-Da-W1nn3r/commit/7cc3391)).
 
 The check earned a permanent place in the repo rather than being thrown away
 once the immediate fixes landed: `scripts/check-deck-overflow.ts`, wired up
