@@ -10,6 +10,7 @@ import { entityAt, footprintTiles, type SimState } from "./grid";
 import { CHEST_SLOTS, POLE_SPEC } from "./constants";
 import { chestSlotsUsed } from "./entities/chest";
 import { connectedPolePairs } from "./entities/power";
+import { voidChestBalance } from "./entities/void-chest";
 
 export const TILE = 28;
 
@@ -24,6 +25,7 @@ const COLORS: Record<Entity["kind"], string> = {
   "item-sink": "#2b2d42",
   chest: "#b08968",
   "inf-loader": "#00b4d8",
+  "void-chest": "#6b2737",
 };
 
 function footprintSize(e: Entity): { w: number; h: number } {
@@ -245,6 +247,17 @@ export function render(ctx: CanvasRenderingContext2D, state: SimState, opts: Ren
       ctx.font = "8px sans-serif";
       ctx.fillText(`L:${e.laneItems[0] ?? "-"}`, px + 2, py + ph / 2 - 2);
       ctx.fillText(`R:${e.laneItems[1] ?? "-"}`, px + 2, py + ph / 2 + 9);
+    }
+    if (e.kind === "void-chest") {
+      ctx.fillStyle = "#fff";
+      ctx.font = "8px sans-serif";
+      ctx.fillText(`L:${e.leftCount}`, px + 2, py + ph / 2 - 2);
+      ctx.fillText(`R:${e.rightCount}`, px + 2, py + ph / 2 + 9);
+      const balance = voidChestBalance(e);
+      ctx.fillStyle = balance === "balanced" ? "#7fb069" : "#ff3b3b";
+      ctx.font = "bold 8px sans-serif";
+      const label = balance === "balanced" ? "L=R" : balance === "left-heavy" ? "L>R" : "L<R";
+      ctx.fillText(label, px + 2, py + 9);
     }
     if (e.kind === "inserter") {
       if (e.held) {

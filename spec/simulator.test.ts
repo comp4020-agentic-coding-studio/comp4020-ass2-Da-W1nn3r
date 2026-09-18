@@ -19,11 +19,12 @@ import {
   PALETTE,
   toggleUndergroundRole,
 } from "../src/lib/simulator/editor";
-import { clearAllItems, createState, placeEntity, type SimState } from "../src/lib/simulator/grid";
+import { clearAllItems, createState, placeEntity, removeEntity, type SimState } from "../src/lib/simulator/grid";
 import { tick, tickMany } from "../src/lib/simulator/simulate";
 import { runBottleneckAnalysis } from "../src/lib/simulator/bottleneck";
 import { chestInsert, chestTake } from "../src/lib/simulator/entities/chest";
 import { wouldPoleConnect } from "../src/lib/simulator/entities/power";
+import { voidChestBalance } from "../src/lib/simulator/entities/void-chest";
 import type { ChestEntity, Entity, PoleEntity } from "../src/lib/simulator/types";
 
 describe("verified mechanic constants", () => {
@@ -978,6 +979,88 @@ describe("infinite loader (tickInfLoaders)", () => {
   });
 });
 
+describe("void chest (tickVoidChests)", () => {
+  function buildRig(): SimState {
+    const state = createState(6, 3);
+    const entities: Entity[] = [
+      { id: 1, kind: "belt", pos: { x: 0, y: 1 }, dir: 1, tier: "yellow", lanes: [[], []] },
+      { id: 2, kind: "void-chest", pos: { x: 1, y: 1 }, dir: 1, leftCount: 0, rightCount: 0 },
+    ];
+    for (const e of entities) placeEntity(state, e);
+    state.nextId = 3;
+    return state;
+  }
+
+  it("wipes every item on the feeding belt tile in one tick, not just a front item at the exit edge", () => {
+    const state = buildRig();
+    const belt = state.entities.get(1) as Extract<Entity, { kind: "belt" }>;
+    // None of these are at the exit edge (pos === 1), so item-sink's "front.pos >= 1 - 1e-6"
+    // gate would leave all three sitting here; the void chest has no such gate.
+    belt.lanes[0] = [{ item: "iron-plate", pos: 0.2 }, { item: "iron-plate", pos: 0.6 }];
+    belt.lanes[1] = [{ item: "copper-plate", pos: 0.4 }];
+
+    tick(state);
+
+    expect(belt.lanes[0]).toHaveLength(0);
+    expect(belt.lanes[1]).toHaveLength(0);
+    const chest = state.entities.get(2) as Extract<Entity, { kind: "void-chest" }>;
+    expect(chest.leftCount).toBe(2);
+    expect(chest.rightCount).toBe(1);
+  });
+
+  it("only counts as active on ticks where it actually drains something", () => {
+    const state = buildRig();
+    tick(state); // both lanes empty — nothing to drain
+    const stats = state.stats.get(2);
+    expect(stats?.activeTicks).toBe(0);
+    expect(stats?.starvedTicks).toBe(1);
+  });
+
+  it("reports starved with no belt feeding it at all", () => {
+    const state = createState(4, 3);
+    placeEntity(state, { id: 1, kind: "void-chest", pos: { x: 1, y: 1 }, dir: 1, leftCount: 0, rightCount: 0 });
+    tick(state);
+    expect(state.stats.get(1)?.starvedTicks).toBe(1);
+  });
+
+  describe("voidChestBalance", () => {
+    function chestWith(left: number, right: number): Extract<Entity, { kind: "void-chest" }> {
+      return { id: 1, kind: "void-chest", pos: { x: 0, y: 0 }, dir: 1, leftCount: left, rightCount: right };
+    }
+
+    it("reads balanced before anything has drained", () => {
+      expect(voidChestBalance(chestWith(0, 0))).toBe("balanced");
+    });
+
+    it("reads balanced for equal counts, and for a small (<5%) relative difference", () => {
+      expect(voidChestBalance(chestWith(100, 100))).toBe("balanced");
+      expect(voidChestBalance(chestWith(102, 100))).toBe("balanced");
+    });
+
+    it("reads left-heavy or right-heavy once the difference exceeds the tolerance", () => {
+      expect(voidChestBalance(chestWith(120, 100))).toBe("left-heavy");
+      expect(voidChestBalance(chestWith(100, 120))).toBe("right-heavy");
+    });
+  });
+
+  it("resets both counts whenever the layout is edited (a placement or removal elsewhere)", () => {
+    const state = buildRig();
+    const chest = state.entities.get(2) as Extract<Entity, { kind: "void-chest" }>;
+    chest.leftCount = 40;
+    chest.rightCount = 10;
+
+    placeEntity(state, { id: 3, kind: "pole", pos: { x: 4, y: 0 }, tier: "small", networkId: null });
+    expect(chest.leftCount).toBe(0);
+    expect(chest.rightCount).toBe(0);
+
+    chest.leftCount = 40;
+    chest.rightCount = 10;
+    removeEntity(state, 3);
+    expect(chest.leftCount).toBe(0);
+    expect(chest.rightCount).toBe(0);
+  });
+});
+
 describe("smart inserter pickup (recipe-filtered, no explicit filter needed)", () => {
   it("only picks up the item its drop-target assembler's recipe needs, ignoring an irrelevant item sharing the belt", () => {
     // In-line pickup (belt and inserter face the same way), so near/far is ambiguous and
@@ -1296,9 +1379,18 @@ describe("clearAllItems", () => {
       { id: 8, kind: "item-sink", pos: { x: 9, y: 1 }, dir: 1, totalCount: 42, history: [{ tick: 10, total: 42 }] },
       { id: 9, kind: "item-source", pos: { x: 9, y: 2 }, dir: 1, item: "iron-plate" },
       { id: 10, kind: "pole", pos: { x: 10, y: 3 }, tier: "substation", networkId: 1 },
+      { id: 11, kind: "void-chest", pos: { x: 11, y: 0 }, dir: 1, leftCount: 0, rightCount: 0 },
     ];
     for (const e of entities) placeEntity(state, e);
-    state.nextId = 11;
+    state.nextId = 12;
+
+    // Set these after placement, not in the literal above — placeEntity itself resets
+    // every void-chest's counts on every call (see grid.ts's resetVoidChestBalances),
+    // so a nonzero value baked into the literal would already be gone before
+    // clearAllItems ever ran; setting it afterward isolates what clearAllItems does.
+    const voidChest = state.entities.get(11) as Extract<Entity, { kind: "void-chest" }>;
+    voidChest.leftCount = 7;
+    voidChest.rightCount = 3;
 
     clearAllItems(state);
 
@@ -1340,6 +1432,9 @@ describe("clearAllItems", () => {
     const pole = state.entities.get(10) as Extract<Entity, { kind: "pole" }>;
     expect(pole.networkId).toBe(1); // power topology stays intact
 
-    expect(state.entities.size).toBe(9); // nothing was placed or removed
+    expect(voidChest.leftCount).toBe(0);
+    expect(voidChest.rightCount).toBe(0);
+
+    expect(state.entities.size).toBe(10); // nothing was placed or removed
   });
 });

@@ -54,6 +54,7 @@ export const PALETTE: PaletteSpec[] = [
   { id: "chest-iron", label: "Iron chest", group: "Chests", kind: "chest", tier: "iron" },
   { id: "chest-steel", label: "Steel chest", group: "Chests", kind: "chest", tier: "steel" },
   { id: "inf-loader", label: "Infinite loader (testing)", group: "Loaders", kind: "inf-loader" },
+  { id: "void-chest", label: "Void chest (desaturates + balance check)", group: "Loaders", kind: "void-chest" },
 ];
 
 export type Tool = { mode: "place"; spec: PaletteSpec } | { mode: "select" } | { mode: "delete" };
@@ -173,6 +174,8 @@ function buildEntityWithId(
       return { id, kind: "chest", pos, tier: spec.tier as ChestTier, inventory: {} };
     case "inf-loader":
       return { id, kind: "inf-loader", pos, dir, laneItems: [null, null] };
+    case "void-chest":
+      return { id, kind: "void-chest", pos, dir, leftCount: 0, rightCount: 0 };
   }
 }
 

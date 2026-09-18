@@ -8,33 +8,9 @@ const groups: string[] = [...new Set(PALETTE.map((p) => p.group))];
 <PageLayout
   title="Factory simulator"
   description="Lay out belts, inserters, assemblers, and power poles on a grid, run it, and find the bottleneck."
+  mainAttrs={{ class: "sim-page-main" }}
 >
-  <div class="sim-app">
-    <div class="sim-toolbar">
-      <button id="btn-play" type="button">Play</button>
-      <button id="btn-step" type="button">Step</button>
-      <label>
-        Speed
-        <select id="speed-select">
-          <option value="1">1x</option>
-          <option value="5">5x</option>
-          <option value="30">30x</option>
-        </select>
-      </label>
-      <button id="btn-rotate" type="button">Rotate (R)</button>
-      <button id="btn-clear" type="button">Clear layout</button>
-      <button id="btn-clear-items" type="button">Clear items</button>
-      <button id="btn-bottleneck" type="button">Find bottleneck (super-speed)</button>
-      <button id="btn-power-overlay" type="button">Power overlay: off</button>
-      <label>
-        Width <input id="resize-width" type="number" min="8" max="80" />
-      </label>
-      <label>
-        Height <input id="resize-height" type="number" min="8" max="80" />
-      </label>
-      <button id="btn-resize" type="button">Resize grid</button>
-      <span id="tick-readout" aria-live="polite"></span>
-    </div>
+  <div class="sim-hints">
     <p class="sim-hint">
       Power poles only draw power for their whole network if at least one pole in that network
       touches the grid's outer edge — tinted amber below.
@@ -59,6 +35,35 @@ const groups: string[] = [...new Set(PALETTE.map((p) => p.group))];
       previews blue if it would connect to an existing pole from here, black if it would place
       unconnected.
     </p>
+  </div>
+
+  <div class="sim-app">
+    <div class="sim-toolbar">
+      <button id="btn-play" type="button">Play</button>
+      <button id="btn-step" type="button">Step</button>
+      <label>
+        Speed
+        <select id="speed-select">
+          <option value="1">1x</option>
+          <option value="5">5x</option>
+          <option value="30">30x</option>
+        </select>
+      </label>
+      <button id="btn-rotate" type="button">Rotate (R)</button>
+      <button id="btn-clear" type="button">Clear layout</button>
+      <button id="btn-clear-items" type="button">Clear items</button>
+      <button id="btn-save" type="button">Save</button>
+      <button id="btn-bottleneck" type="button">Find bottleneck (super-speed)</button>
+      <button id="btn-power-overlay" type="button">Power overlay: off</button>
+      <label>
+        Width <input id="resize-width" type="number" min="8" max="80" />
+      </label>
+      <label>
+        Height <input id="resize-height" type="number" min="8" max="80" />
+      </label>
+      <button id="btn-resize" type="button">Resize grid</button>
+      <span id="tick-readout" aria-live="polite"></span>
+    </div>
 
     <div class="sim-layout">
       <aside class="sim-palette" aria-label="Entity palette">
@@ -111,12 +116,13 @@ const groups: string[] = [...new Set(PALETTE.map((p) => p.group))];
     } from "../../lib/simulator/editor";
     import { canPlace, clearAllItems, createState, placeEntity, removeEntity, type SimState } from "../../lib/simulator/grid";
     import { isEntityPowered, wouldPoleConnect } from "../../lib/simulator/entities/power";
+    import { voidChestBalance } from "../../lib/simulator/entities/void-chest";
     import { chestSlotsUsed } from "../../lib/simulator/entities/chest";
     import { render, TILE, type GhostPreview } from "../../lib/simulator/render";
     import type { Direction, Vec2 } from "../../lib/simulator/types";
     import { tick as tickOnce } from "../../lib/simulator/simulate";
     import { runBottleneckAnalysis } from "../../lib/simulator/bottleneck";
-    import { clearAutosave, loadFromLocalStorage, saveToLocalStorage } from "../../lib/simulator/serialize";
+    import { clearAutosave, loadFromLocalStorage, saveToLocalStorage, serializeState } from "../../lib/simulator/serialize";
 
     const canvas = document.getElementById("sim-canvas") as HTMLCanvasElement;
     const ctx = canvas.getContext("2d")!;
@@ -157,6 +163,7 @@ const groups: string[] = [...new Set(PALETTE.map((p) => p.group))];
     const rotateBtn = document.getElementById("btn-rotate") as HTMLButtonElement;
     const clearBtn = document.getElementById("btn-clear") as HTMLButtonElement;
     const clearItemsBtn = document.getElementById("btn-clear-items") as HTMLButtonElement;
+    const saveBtn = document.getElementById("btn-save") as HTMLButtonElement;
     const bottleneckBtn = document.getElementById("btn-bottleneck") as HTMLButtonElement;
     const powerOverlayBtn = document.getElementById("btn-power-overlay") as HTMLButtonElement;
     const speedSelect = document.getElementById("speed-select") as HTMLSelectElement;
@@ -264,6 +271,16 @@ const groups: string[] = [...new Set(PALETTE.map((p) => p.group))];
       clearAllItems(state);
       saveToLocalStorage(state);
       renderInspector();
+    });
+
+    saveBtn.addEventListener("click", () => {
+      const blob = new Blob([serializeState(state)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `factory-layout-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
     });
 
     resizeBtn.addEventListener("click", () => {
@@ -410,6 +427,12 @@ const groups: string[] = [...new Set(PALETTE.map((p) => p.group))];
       if (entity.kind === "item-sink") {
         html += `<p>Total received: ${entity.totalCount}</p><p>Rate: ${rateFromHistory(entity.history).toFixed(1)} items/min</p>`;
       }
+      if (entity.kind === "void-chest") {
+        const balance = voidChestBalance(entity);
+        const balanceLabel = balance === "balanced" ? "balanced" : balance === "left-heavy" ? "left-heavy" : "right-heavy";
+        html += `<p>Drained left: ${entity.leftCount}</p><p>Drained right: ${entity.rightCount}</p><p>Balance: ${balanceLabel}</p>`;
+        html += `<p>Balance counts reset whenever the layout is edited.</p>`;
+      }
       if (entity.kind === "pole") {
         const powered = entity.networkId !== null && state.poweredNetworks.has(entity.networkId);
         html += `<p>Network: ${entity.networkId ?? "unconnected"}</p><p>Powered: ${powered ? "yes" : "no"}</p>`;
@@ -524,11 +547,36 @@ const groups: string[] = [...new Set(PALETTE.map((p) => p.group))];
 </PageLayout>
 
 <style>
-  .sim-app {
+  /* The theme's <main> is a subgrid spanning only `inset-start` to `content-end` (see
+     astro-theme-university's base.css), so it never reaches the `full-start`/`full-end`
+     lines — a plain `grid-column: full` on a descendant silently falls back to the
+     content column. `mainAttrs={{ class: "sim-page-main" }}` on PageLayout above adds
+     this class to <main> itself so the override below (unlayered, so it wins over the
+     theme's `@layer at.components` rule without needing !important) widens *this page's*
+     <main> box out to the real full-bleed lines, letting .sim-app's own `grid-column:
+     full` resolve against them. .sim-hints stays out of this element, so the hint text
+     keeps the ordinary content-column measure. */
+  :global(.sim-page-main) {
     grid-column: full;
+  }
+
+  .sim-app {
+    /* grid-column: full escapes .sim-page-main's full-bleed cell; width/margin
+       then pull it back in to ~80% of the screen instead of edge-to-edge. */
+    grid-column: full;
+    width: 80%;
+    margin-inline: auto;
     display: grid;
     gap: var(--at-spacing-lg, 1rem);
-    padding-inline: var(--at-spacing-lg, 1rem);
+    padding-inline: var(--at-gutter, 1rem);
+
+    /* The template's vertical accent rule (body::after) is an absolutely-positioned,
+       z-index:auto element painted after body's in-flow static content, so it would
+       otherwise draw on top of the widened toolbar/canvas. Establishing a stacking
+       context here with a positive z-index moves this whole area (and everything
+       nested in it) above that paint step, without moving the rule itself. */
+    position: relative;
+    z-index: 1;
   }
 
   .sim-toolbar {
@@ -539,7 +587,7 @@ const groups: string[] = [...new Set(PALETTE.map((p) => p.group))];
   }
 
   .sim-toolbar input[type="number"] {
-    width: 4rem;
+    width: 5rem;
   }
 
   .sim-hint {
@@ -609,6 +657,13 @@ const groups: string[] = [...new Set(PALETTE.map((p) => p.group))];
   /* Narrow portrait (most phones): plenty of vertical scroll room, so stack everything
      in one column — canvas first, then the controls below it. */
   @media (width < 900px) {
+    /* The 80%-width cap is a desktop nicety (keeps the toolbar/canvas from
+       stretching edge-to-edge on wide screens); below the stacking breakpoint
+       there's no spare width to give back, so use the full available space. */
+    .sim-app {
+      width: 100%;
+    }
+
     .sim-layout {
       grid-template-columns: 1fr;
       grid-template-areas:

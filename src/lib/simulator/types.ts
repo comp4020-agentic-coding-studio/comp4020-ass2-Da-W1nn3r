@@ -190,6 +190,25 @@ export interface InfLoaderEntity {
   laneItems: [ItemId | null, ItemId | null];
 }
 
+/** Testing/debug utility with no real-game counterpart: the drain-side mirror of
+ * inf-loader (see its header). Where inf-loader unconditionally fills both lanes
+ * every tick regardless of what's already there, a void chest unconditionally
+ * empties whatever's on the tile immediately behind it every tick, lane and all —
+ * not just the front-most item once it reaches the exit edge, the way item-sink
+ * does — so the belt feeding it never backs up no matter the throughput. It also
+ * tallies how many items it has drained from each lane separately, so a layout can
+ * be checked for left/right balance (entities/void-chest.ts's voidChestBalance);
+ * grid.ts resets both counts on every placement/removal, since a balance reading
+ * from before the last edit doesn't describe the current layout. */
+export interface VoidChestEntity {
+  id: number;
+  kind: "void-chest";
+  pos: Vec2;
+  dir: Direction;
+  leftCount: number;
+  rightCount: number;
+}
+
 export type Entity =
   | BeltEntity
   | UndergroundBeltEntity
@@ -200,7 +219,8 @@ export type Entity =
   | ItemSourceEntity
   | ItemSinkEntity
   | ChestEntity
-  | InfLoaderEntity;
+  | InfLoaderEntity
+  | VoidChestEntity;
 
 export type EntityKind = Entity["kind"];
 

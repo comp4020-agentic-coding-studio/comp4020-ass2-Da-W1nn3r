@@ -2,10 +2,10 @@
 // ticks-per-cycle constants in constants.ts plug in directly).
 //
 // Update order: power -> assemblers -> inserters -> belts/splitters ->
-// sources/sinks/inf-loaders. Power goes first so everything downstream sees this tick's
-// supply state; sources/sinks/inf-loaders go last so an item placed by an inserter or
-// belt this tick isn't immediately eligible for a second hop before the
-// next tick.
+// sources/sinks/void-chests/inf-loaders. Power goes first so everything downstream
+// sees this tick's supply state; sources/sinks/void-chests/inf-loaders go last so an
+// item placed by an inserter or belt this tick isn't immediately eligible for a
+// second hop before the next tick.
 
 import { resolveUndergroundPartners, tickBelts } from "./entities/belt";
 import { tickSplitters } from "./entities/splitter";
@@ -13,6 +13,7 @@ import { tickInserters } from "./entities/inserter";
 import { tickAssemblers } from "./entities/assembler";
 import { tickPower } from "./entities/power";
 import { tickSinks, tickSources } from "./entities/source-sink";
+import { tickVoidChests } from "./entities/void-chest";
 import { tickInfLoaders } from "./entities/inf-loader";
 import type { SimState } from "./grid";
 
@@ -25,6 +26,7 @@ export function tick(state: SimState): void {
   tickSplitters(state);
   tickSources(state);
   tickSinks(state);
+  tickVoidChests(state);
   tickInfLoaders(state);
   state.tick += 1;
 }

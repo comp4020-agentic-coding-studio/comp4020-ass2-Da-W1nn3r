@@ -120,6 +120,18 @@ export function canPlace(state: SimState, entity: Entity): boolean {
   );
 }
 
+/** A void chest's left/right balance reading only describes the layout as it stood
+ * since the last edit — resetting it on every placement/removal (rather than only on
+ * an explicit run reset, like clearAllItems) keeps it from reporting a balance verdict
+ * that was measured against a since-changed feed. */
+function resetVoidChestBalances(state: SimState): void {
+  for (const e of state.entities.values()) {
+    if (e.kind !== "void-chest") continue;
+    e.leftCount = 0;
+    e.rightCount = 0;
+  }
+}
+
 export function placeEntity(state: SimState, entity: Entity): boolean {
   if (!canPlace(state, entity)) return false;
   state.entities.set(entity.id, entity);
@@ -128,6 +140,7 @@ export function placeEntity(state: SimState, entity: Entity): boolean {
   }
   state.powerDirty = true;
   state.beltDirty = true;
+  resetVoidChestBalances(state);
   return true;
 }
 
@@ -140,6 +153,7 @@ export function removeEntity(state: SimState, id: number): void {
   state.entities.delete(id);
   state.powerDirty = true;
   state.beltDirty = true;
+  resetVoidChestBalances(state);
 }
 
 export function entityAt(state: SimState, pos: Vec2): Entity | undefined {
@@ -150,10 +164,10 @@ export function entityAt(state: SimState, pos: Vec2): Entity | undefined {
 /** Empties every item currently in transit or storage — belt/underground-belt lanes and
  * tunnels, splitter lanes, inserter hands (and their mid-swing state, since a swing is only
  * ever "carrying" the held item it's now lost), assembler input/output buffers, chest
- * inventories, and the item-sink counter/history — without touching placed entities,
- * their configuration (recipes, filters, tiers, directions, priorities), or power/belt
- * topology. Leaves the layout exactly as built, just empty of items, e.g. to reset a run
- * without re-placing everything. */
+ * inventories, the item-sink counter/history, and the void-chest left/right drain
+ * counts — without touching placed entities, their configuration (recipes, filters,
+ * tiers, directions, priorities), or power/belt topology. Leaves the layout exactly as
+ * built, just empty of items, e.g. to reset a run without re-placing everything. */
 export function clearAllItems(state: SimState): void {
   for (const entity of state.entities.values()) {
     switch (entity.kind) {
@@ -184,6 +198,10 @@ export function clearAllItems(state: SimState): void {
       case "item-sink":
         entity.totalCount = 0;
         entity.history = [];
+        break;
+      case "void-chest":
+        entity.leftCount = 0;
+        entity.rightCount = 0;
         break;
       default:
         break;
